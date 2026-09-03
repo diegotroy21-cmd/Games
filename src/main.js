@@ -43,6 +43,21 @@ function boot() {
   window.addEventListener('resize', onResize);
   onResize();
 
+  // Adaptive resolution: if the device cannot hold a smooth frame rate, step the pixel ratio down
+  // (never below 0.75); step back up when there is headroom for a while.
+  const maxRatio = renderer.getPixelRatio();
+  let ratio = maxRatio, slowSeconds = 0, fastSeconds = 0;
+  function adaptResolution(fps) {
+    if (fps < 42 && ratio > 0.75) { slowSeconds++; fastSeconds = 0; }
+    else if (fps > 57 && ratio < maxRatio) { fastSeconds++; slowSeconds = 0; }
+    else { slowSeconds = 0; fastSeconds = 0; }
+    if (slowSeconds >= 3) { ratio = Math.max(0.75, ratio - 0.25); slowSeconds = 0; }
+    else if (fastSeconds >= 12) { ratio = Math.min(maxRatio, ratio + 0.25); fastSeconds = 0; }
+    else return;
+    renderer.setPixelRatio(ratio);
+    onResize();
+  }
+
   let last = performance.now();
   let frames = 0, fpsStart = last;
   function frame(now) {
@@ -54,7 +69,10 @@ function boot() {
     game.update(dt);
     game.render(dt);
     frames++;
-    if (now - fpsStart >= 1000) { game.fps = frames * 1000 / (now - fpsStart); frames = 0; fpsStart = now; }
+    if (now - fpsStart >= 1000) {
+      game.fps = frames * 1000 / (now - fpsStart); frames = 0; fpsStart = now;
+      if (game.state === 'running' && !window.__noAdapt) adaptResolution(game.fps);
+    }
   }
   requestAnimationFrame(frame);
 }

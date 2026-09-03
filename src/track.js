@@ -226,6 +226,7 @@ export class Track {
       side: pickSides(kind, rng), prev: parent, next: {}, visual: null, coinSlots: null,
     };
 
+    piece.obstacleTail = Infinity;
     if (!opts.safe) this._placeObstacles(piece, rng);
     this._placeCoins(piece, rng);
     this._placePowerups(piece, rng, parent);
@@ -238,7 +239,16 @@ export class Track {
 
   _placeObstacles(piece, rng) {
     const D = piece.difficulty;
-    const uMin = piece.contentStart + (piece.contentStart > 0 ? 7 : 4);
+    const speed0 = speedAtDistance(piece.startDistance);
+    const react0 = lerp(1.05, 0.58, D);
+    // Give the player time after a corner (the camera is still swinging round) and across straight
+    // joins (the previous piece's last obstacle may sit right at its end).
+    let uMin;
+    if (piece.contentStart > 0) uMin = piece.contentStart + Math.max(7, speed0 * 0.85);
+    else {
+      const tail = piece.prev ? piece.prev.obstacleTail : Infinity; // metres from the last obstacle to the join
+      uMin = Math.max(4, speed0 * react0 - tail);
+    }
     const uMax = (piece.end === 'straight' ? piece.length - 3 : piece.tileStart - 5);
     let u = uMin + rng.range(0, 5);
     let last = null;
@@ -256,6 +266,8 @@ export class Track {
       }
     }
     piece.obstacles.sort((a, b) => a.u - b.u);
+    const lastObs = piece.obstacles[piece.obstacles.length - 1];
+    piece.obstacleTail = lastObs ? piece.length - (lastObs.u + lastObs.depth * 0.5) : Infinity;
   }
 
   _placeCoins(piece, rng) {
