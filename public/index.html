@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0d1a12">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Relic Rush</title>
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="touch"></div>
+
+<div id="hud" class="hud" hidden>
+  <div class="hud-left">
+    <div class="hud-label">Score</div>
+    <div id="hud-score" class="hud-score">0</div>
+    <div id="hud-mult" class="hud-mult">x1</div>
+  </div>
+  <div class="hud-right">
+    <div class="hud-coins"><span class="coin-icon"></span><span id="hud-coins">0</span></div>
+    <div id="hud-dist" class="hud-dist">0 m</div>
+  </div>
+  <div id="hud-power" class="hud-power" hidden>
+    <div id="hud-power-icon" class="power-icon"></div>
+    <div class="power-bar"><div id="hud-power-fill" class="power-fill"></div></div>
+  </div>
+  <div id="hud-toast" class="hud-toast"></div>
+  <div id="hud-hint" class="hud-hint"></div>
+</div>
+
+<div id="menu" class="overlay">
+  <div class="panel">
+    <h1 class="title"><span>Relic</span> Rush</h1>
+    <p class="subtitle">You stole the idol. Now run.</p>
+    <div class="stats">
+      <div><span class="stat-label">Best</span><span id="menu-best" class="stat-value">0</span></div>
+      <div><span class="stat-label">Coins</span><span id="menu-coins" class="stat-value">0</span></div>
+    </div>
+    <button id="btn-play" class="btn btn-primary">Run</button>
+    <div class="row">
+      <button id="btn-shop" class="btn">Upgrades</button>
+      <button id="btn-sound" class="btn">Sound: On</button>
+    </div>
+    <p class="hint">Swipe or use arrow keys. &larr; &rarr; move / turn &nbsp; &uarr; jump &nbsp; &darr; slide</p>
+  </div>
+</div>
+
+<div id="gameover" class="overlay" hidden>
+  <div class="panel">
+    <h2 id="go-title">Caught!</h2>
+    <div id="go-best" class="best-badge" hidden>New best!</div>
+    <div class="stats stats-col">
+      <div><span class="stat-label">Score</span><span id="go-score" class="stat-value">0</span></div>
+      <div><span class="stat-label">Distance</span><span id="go-dist" class="stat-value">0 m</span></div>
+      <div><span class="stat-label">Coins</span><span id="go-coins" class="stat-value">0</span></div>
+      <div><span class="stat-label">Best</span><span id="go-hi" class="stat-value">0</span></div>
+    </div>
+    <button id="btn-again" class="btn btn-primary">Run again</button>
+    <div class="row">
+      <button id="btn-shop2" class="btn">Upgrades</button>
+    </div>
+  </div>
+</div>
+
+<div id="pause" class="overlay" hidden>
+  <div class="panel">
+    <h2>Paused</h2>
+    <button id="btn-resume" class="btn btn-primary">Resume</button>
+  </div>
+</div>
+
+<div id="shop" class="overlay" hidden>
+  <div class="panel panel-wide">
+    <h2>Upgrades</h2>
+    <div class="shop-coins"><span class="coin-icon"></span><span id="shop-coins">0</span></div>
+    <div id="shop-list" class="shop-list"></div>
+    <button id="btn-shop-close" class="btn btn-primary">Back</button>
+  </div>
+</div>
+<script src="./game.js"></script>
+</body>
+</html>
