@@ -51,7 +51,9 @@ export class Player {
     this.updateWorld();
   }
 
-  get inTurnWindow() { return this.piece.end !== 'straight' && this.u >= this.piece.tileStart - CONFIG.turnEarlyWindow; }
+  // Swipes shortly before the corner tile count as turns (window grows with speed: ~0.2 s of travel).
+  get turnWindowStart() { return this.piece.tileStart - Math.max(CONFIG.turnEarlyWindow, this.speed * 0.2); }
+  get inTurnWindow() { return this.piece.end !== 'straight' && this.u >= this.turnWindowStart; }
   get inTile() { return this.piece.end !== 'straight' && this.u >= this.piece.tileStart; }
   get onGround() { return this.y <= 0.0001 && this.state !== 'jump' && this.state !== 'fall'; }
   get hitboxHeight() { return this.state === 'slide' ? CONFIG.slideHeight : CONFIG.playerHeight; }
@@ -219,7 +221,7 @@ export class Player {
         if (this.y <= 0.001 && this.state !== 'jump' && u > o.u - half + 0.25 && u < o.u + half - 0.25) {
           if (this.boost) { this._jump(); continue; }
           o.hit = true;
-          this._die('fall');
+          this._die('fall', o);
           return;
         }
         continue;

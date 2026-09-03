@@ -12,6 +12,7 @@ const RUNS = Number(opt('runs', 60));
 const REACTS = String(opt('react', '0.3,0.45,0.6,0.8')).split(',').map(Number);
 const MAX_DIST = Number(opt('maxDist', 5000));
 const VERBOSE = args.includes('--verbose');
+const ERR = Number(opt('err', 0.03)); // chance a hazard is misread and ignored (human-like)
 
 function simulate(seed, react, errRate = 0) {
   const track = new Track(seed);
@@ -63,9 +64,10 @@ function simulate(seed, react, errRate = 0) {
       seen.add('turn' + p.id);
       const dir = p.end === 'tee' ? (rand() < 0.5 ? 'left' : 'right') : p.end;
       const arrive = (p.tileStart - player.u) / Math.max(1, player.speed);
-      pending.push({ t: t + Math.max(react, arrive + 0.05), fn: () => { if (player.piece === p) player.handleAction(dir); } });
+      // swipe once the reaction delay has passed AND the runner is actually at the corner
+      pending.push({ t: t + react, cond: () => player.piece !== p || player.u >= p.tileStart + 0.3, fn: () => { if (player.piece === p) player.handleAction(dir); } });
     }
-    for (let i = pending.length - 1; i >= 0; i--) if (pending[i].t <= t) { pending[i].fn(); pending.splice(i, 1); }
+    for (let i = pending.length - 1; i >= 0; i--) if (pending[i].t <= t && (!pending[i].cond || pending[i].cond())) { pending[i].fn(); pending.splice(i, 1); }
     player.update(dt);
     t += dt;
   }
@@ -74,7 +76,7 @@ function simulate(seed, react, errRate = 0) {
 
 for (const react of REACTS) {
   const results = [];
-  for (let i = 0; i < RUNS; i++) results.push(simulate(1000 + i * 17, react));
+  for (let i = 0; i < RUNS; i++) results.push(simulate(1000 + i * 17, react, ERR));
   const dists = results.map((r) => r.distance).sort((a, b) => a - b);
   const median = dists[Math.floor(dists.length / 2)];
   const mean = dists.reduce((a, b) => a + b, 0) / dists.length;

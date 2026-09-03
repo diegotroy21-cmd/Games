@@ -249,13 +249,14 @@ export class Track {
       const tail = piece.prev ? piece.prev.obstacleTail : Infinity; // metres from the last obstacle to the join
       uMin = Math.max(4, speed0 * react0 - tail);
     }
-    const uMax = (piece.end === 'straight' ? piece.length - 3 : piece.tileStart - 5);
+    // Keep hazards clear of the corner: a late dodge swipe must never land inside the turn window.
+    const uMax = (piece.end === 'straight' ? piece.length - 3 : piece.tileStart - 5 - speed0 * 0.25);
     let u = uMin + rng.range(0, 5);
     let last = null;
     const density = lerp(0.55, 1.0, D); // chance a slot gets an obstacle
     while (u < uMax) {
       const speed = speedAtDistance(piece.startDistance + u);
-      const react = lerp(1.05, 0.58, D);
+      const react = lerp(1.0, 0.45, D); // seconds of clear running between hazard events
       if (rng.chance(density)) {
         const tpl = pickTemplate(piece.kind, D, rng, last);
         const depth = tpl.place(piece, u, rng, D, speed);
