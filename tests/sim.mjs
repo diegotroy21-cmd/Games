@@ -38,8 +38,9 @@ function simulate(seed, react, errRate = 0) {
       seen.add(o.id);
       // Decide the move now; execute it `react` seconds later, timed so it happens close to the obstacle.
       const arrive = d / Math.max(1, player.speed);
-      // act `react` seconds after noticing, but no later than shortly before arrival
-      const when = t + Math.min(react, Math.max(0, arrive - (o.action === 'jump' ? 0.2 : o.action === 'slide' ? 0.15 : 0.3)));
+      // Notice now; act no sooner than `react` seconds later, timed to land shortly before arrival
+      // (jumping too early lands on the hazard). If react > arrival the player is simply too slow.
+      const when = t + Math.max(react, arrive - (o.action === 'jump' ? 0.2 : o.action === 'slide' ? 0.15 : 0.3));
       const laneOverlap = () => player.lateral + 0.45 > o.vMin && player.lateral - 0.45 < o.vMax;
       if (rand() < errRate) continue; // occasional missed read
       if (o.action === 'jump') pending.push({ t: when, fn: () => { if (laneOverlap()) player.handleAction('up'); } });
