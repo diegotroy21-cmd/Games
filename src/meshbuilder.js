@@ -28,7 +28,7 @@ export function unitGeo(kind, ...params) {
     case 'torus': g = new THREE.TorusGeometry(1, params[0] ?? 0.2, params[1] ?? 6, params[2] ?? 12); break;
     default: throw new Error('unknown geo ' + kind);
   }
-  g = g.toNonIndexed();
+  if (g.index) g = g.toNonIndexed(); // polyhedra are already non-indexed
   geoCache.set(key, g);
   return g;
 }
