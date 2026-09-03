@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#0d1a12">
+<meta name="theme-color" content="#0a1410">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -14,69 +14,289 @@
 <canvas id="game"></canvas>
 <div id="touch"></div>
 
+<!-- Inline SVG sprite: every icon in the UI is a <use> of one of these symbols (no external assets). -->
+<svg class="sprite" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="g-gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe89a"/>
+      <stop offset=".5" stop-color="#f2b33d"/>
+      <stop offset="1" stop-color="#9c5a0c"/>
+    </linearGradient>
+    <radialGradient id="g-coin" cx="38%" cy="32%" r="70%">
+      <stop offset="0" stop-color="#fff3bf"/>
+      <stop offset=".45" stop-color="#ffc93a"/>
+      <stop offset="1" stop-color="#b4680c"/>
+    </radialGradient>
+    <radialGradient id="g-gem" cx="35%" cy="30%" r="70%">
+      <stop offset="0" stop-color="#c8ffd6"/>
+      <stop offset=".5" stop-color="#3fd66a"/>
+      <stop offset="1" stop-color="#0d5a2a"/>
+    </radialGradient>
+    <radialGradient id="g-glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#ffd76a" stop-opacity=".6"/>
+      <stop offset=".55" stop-color="#ff9a1f" stop-opacity=".14"/>
+      <stop offset="1" stop-color="#ff9a1f" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <symbol id="i-coin" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="10.5" fill="url(#g-coin)" stroke="#7a4408" stroke-width="1.4"/>
+    <circle cx="12" cy="12" r="7" fill="none" stroke="#a86112" stroke-width="1.1" opacity=".8"/>
+    <path d="M12 7.5 L15.5 12 L12 16.5 L8.5 12 Z" fill="#8f4f0a" opacity=".85"/>
+    <path d="M12 8.6 L14.4 12 L12 15.4 L9.6 12 Z" fill="#ffe7a0"/>
+  </symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24">
+    <path d="M12 2 L20 5 V11 C20 16.5 16.5 20.5 12 22 C7.5 20.5 4 16.5 4 11 V5 Z" fill="currentColor"/>
+    <path d="M12 5.2 L17 7.2 V11 C17 14.6 14.9 17.4 12 18.7 C9.1 17.4 7 14.6 7 11 V7.2 Z" fill="#0a1410" opacity=".35"/>
+    <path d="M12 7.5 L14.5 12 L12 16.5 L9.5 12 Z" fill="#fff" opacity=".85"/>
+  </symbol>
+  <symbol id="i-magnet" viewBox="0 0 24 24">
+    <path d="M5 3 V11 A7 7 0 0 0 19 11 V3 H14 V11 A2 2 0 0 1 10 11 V3 Z" fill="currentColor"/>
+    <path d="M5 3 H10 V7 H5 Z M14 3 H19 V7 H14 Z" fill="#fff" opacity=".9"/>
+  </symbol>
+  <symbol id="i-boost" viewBox="0 0 24 24">
+    <path d="M13.5 1.5 L4 13.5 H10.5 L9.5 22.5 L20 9.5 H13.5 Z" fill="currentColor"/>
+    <path d="M12.5 5.5 L8 11.5 H12 L11.5 16 L16 10.5 H12.2 Z" fill="#fff" opacity=".55"/>
+  </symbol>
+  <symbol id="i-head" viewBox="0 0 24 24">
+    <path d="M3 4 L12 12 L3 20 Z" fill="currentColor"/>
+    <path d="M12 4 L21 12 L12 20 Z" fill="currentColor" opacity=".7"/>
+  </symbol>
+  <symbol id="i-gem" viewBox="0 0 24 24">
+    <path d="M7 3 H17 L22 9 L12 22 L2 9 Z" fill="currentColor"/>
+    <path d="M7 3 L9.5 9 L12 22 L14.5 9 L17 3 M2 9 H22" fill="none" stroke="#0a1410" stroke-opacity=".45" stroke-width="1.2"/>
+    <path d="M7 3 L2 9 H9.5 Z" fill="#fff" opacity=".35"/>
+  </symbol>
+  <symbol id="i-trophy" viewBox="0 0 24 24">
+    <path d="M7 3 H17 V6 H20 V8.5 A4.5 4.5 0 0 1 15.9 13 A4.6 4.6 0 0 1 13 15.7 V18 H16 V20.5 H8 V18 H11 V15.7 A4.6 4.6 0 0 1 8.1 13 A4.5 4.5 0 0 1 4 8.5 V6 H7 Z M6 8 V8.5 A2.5 2.5 0 0 0 7.6 10.8 A9 9 0 0 1 7.1 8 Z M18 8 H16.9 A9 9 0 0 1 16.4 10.8 A2.5 2.5 0 0 0 18 8.5 Z" fill="currentColor"/>
+  </symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24">
+    <rect x="6" y="4" width="4.5" height="16" rx="1.2" fill="currentColor"/>
+    <rect x="13.5" y="4" width="4.5" height="16" rx="1.2" fill="currentColor"/>
+  </symbol>
+  <symbol id="i-play" viewBox="0 0 24 24">
+    <path d="M7 4 L19 12 L7 20 Z" fill="currentColor"/>
+  </symbol>
+  <symbol id="i-sound" viewBox="0 0 24 24">
+    <path d="M3 9 H7 L12 4.5 V19.5 L7 15 H3 Z" fill="currentColor"/>
+    <path d="M15 8.5 A4.5 4.5 0 0 1 15 15.5 M17.8 5.5 A8.5 8.5 0 0 1 17.8 18.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="i-mute" viewBox="0 0 24 24">
+    <path d="M3 9 H7 L12 4.5 V19.5 L7 15 H3 Z" fill="currentColor"/>
+    <path d="M15.5 9.5 L20.5 14.5 M20.5 9.5 L15.5 14.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24">
+    <path d="M3 6 H21 M3 12 H21 M3 18 H21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="9" cy="6" r="2.6" fill="currentColor"/>
+    <circle cx="15" cy="12" r="2.6" fill="currentColor"/>
+    <circle cx="8" cy="18" r="2.6" fill="currentColor"/>
+  </symbol>
+  <symbol id="i-exit" viewBox="0 0 24 24">
+    <path d="M10 4 H5 V20 H10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M9 12 H20 M16 8 L20 12 L16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="i-monkey" viewBox="0 0 24 24">
+    <circle cx="4.5" cy="11" r="3.2" fill="currentColor"/>
+    <circle cx="19.5" cy="11" r="3.2" fill="currentColor"/>
+    <circle cx="12" cy="12" r="8" fill="currentColor"/>
+    <path d="M7 13.5 A5 5 0 0 0 17 13.5 A5 4.2 0 0 0 7 13.5 Z" fill="#1a0b08" opacity=".75"/>
+    <circle cx="9.6" cy="9.8" r="1.5" fill="#ffe14a"/>
+    <circle cx="14.4" cy="9.8" r="1.5" fill="#ffe14a"/>
+    <path d="M9.5 15.5 Q12 17.8 14.5 15.5" fill="none" stroke="#ffe14a" stroke-width="1.2" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="i-swipe" viewBox="0 0 48 48">
+    <path d="M24 34 V9" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/>
+    <path d="M15 17 L24 7 L33 17" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="24" cy="36" r="6.5" fill="currentColor"/>
+    <circle cx="24" cy="36" r="10.5" fill="none" stroke="currentColor" stroke-width="2" opacity=".45"/>
+  </symbol>
+  <symbol id="i-swipe-lr" viewBox="0 0 48 48">
+    <path d="M9 24 H39" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/>
+    <path d="M15 17 L7 24 L15 31 M33 17 L41 24 L33 31" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="24" cy="24" r="6" fill="currentColor"/>
+    <circle cx="24" cy="24" r="10" fill="none" stroke="currentColor" stroke-width="2" opacity=".45"/>
+  </symbol>
+  <symbol id="i-swipe-turn" viewBox="0 0 48 48">
+    <path d="M18 38 V20 A8 8 0 0 1 26 12 H38" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/>
+    <path d="M31 5 L39 12 L31 19" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="18" cy="38" r="6" fill="currentColor"/>
+    <circle cx="18" cy="38" r="10" fill="none" stroke="currentColor" stroke-width="2" opacity=".45"/>
+  </symbol>
+</svg>
+
+<!-- In-game HUD (pointer-events pass through except for the pause button) -->
 <div id="hud" class="hud" hidden>
-  <div class="hud-left">
+  <div class="hud-danger" aria-hidden="true"></div>
+  <div class="hud-tl">
     <div class="hud-label">Score</div>
     <div id="hud-score" class="hud-score">0</div>
-    <div id="hud-mult" class="hud-mult">x1</div>
+    <div id="hud-mult" class="hud-mult"><span class="x">&times;</span><b id="hud-mult-val">1</b></div>
   </div>
-  <div class="hud-right">
-    <div class="hud-coins"><span class="coin-icon"></span><span id="hud-coins">0</span></div>
+  <div class="hud-tr">
+    <button id="btn-pause" class="icon-btn" aria-label="Pause"><svg><use href="#i-pause"/></svg></button>
+    <div id="hud-coins-wrap" class="hud-coins"><svg class="coin"><use href="#i-coin"/></svg><span id="hud-coins">0</span></div>
     <div id="hud-dist" class="hud-dist">0 m</div>
   </div>
-  <div id="hud-power" class="hud-power" hidden>
-    <div id="hud-power-icon" class="power-icon"></div>
-    <div class="power-bar"><div id="hud-power-fill" class="power-fill"></div></div>
+  <div id="hud-powers" class="hud-powers">
+    <div id="hud-power-boost" class="power boost" hidden>
+      <svg class="ring" viewBox="0 0 52 52"><circle class="ring-bg" cx="26" cy="26" r="23"/><circle class="ring-fg" cx="26" cy="26" r="23"/></svg>
+      <svg class="power-icon"><use href="#i-boost"/></svg>
+      <div class="power-secs">5</div>
+    </div>
+    <div id="hud-power-shield" class="power shield" hidden>
+      <svg class="ring" viewBox="0 0 52 52"><circle class="ring-bg" cx="26" cy="26" r="23"/><circle class="ring-fg" cx="26" cy="26" r="23"/></svg>
+      <svg class="power-icon"><use href="#i-shield"/></svg>
+      <div class="power-secs">9</div>
+    </div>
+    <div id="hud-power-magnet" class="power magnet" hidden>
+      <svg class="ring" viewBox="0 0 52 52"><circle class="ring-bg" cx="26" cy="26" r="23"/><circle class="ring-fg" cx="26" cy="26" r="23"/></svg>
+      <svg class="power-icon"><use href="#i-magnet"/></svg>
+      <div class="power-secs">10</div>
+    </div>
   </div>
   <div id="hud-toast" class="hud-toast"></div>
-  <div id="hud-hint" class="hud-hint"></div>
+  <div id="hud-warn" class="hud-warn"><svg><use href="#i-monkey"/></svg><span>They're close!</span><svg><use href="#i-monkey"/></svg></div>
+  <div id="hud-hint" class="hud-hint"><div id="hud-hint-glyph" class="hint-glyph"></div><div id="hud-hint-text" class="hint-text"></div></div>
 </div>
 
-<div id="menu" class="overlay">
-  <div class="panel">
-    <h1 class="title"><span>Relic</span> Rush</h1>
-    <p class="subtitle">You stole the idol. Now run.</p>
+<!-- Title screen -->
+<div id="menu" class="overlay overlay-title">
+  <div class="vignette" aria-hidden="true"></div>
+  <div id="dust" class="dust" aria-hidden="true"></div>
+  <div class="title-wrap">
+    <div class="emblem-wrap">
+      <svg class="emblem" viewBox="0 0 120 140" aria-hidden="true">
+        <circle cx="60" cy="72" r="58" fill="url(#g-glow)"/>
+        <g class="rays" fill="#f2b33d" opacity=".32">
+          <polygon points="56,40 64,40 60,4" transform="rotate(0 60 72)"/>
+          <polygon points="56,40 64,40 60,4" transform="rotate(30 60 72)"/>
+          <polygon points="56,40 64,40 60,4" transform="rotate(60 60 72)"/>
+          <polygon points="56,40 64,40 60,4" transform="rotate(90 60 72)"/>
+          <polygon points="56,40 64,40 60,4" transform="rotate(120 60 72)"/>
+          <polygon points="56,40 64,40 60,4" transform="rotate(150 60 72)"/>
+          <polygon points="56,40 64,40 60,4" transform="rotate(180 60 72)"/>
+          <polygon points="56,40 64,40 60,4" transform="rotate(210 60 72)"/>
+          <polygon points="56,40 64,40 60,4" transform="rotate(240 60 72)"/>
+          <polygon points="56,40 64,40 60,4" transform="rotate(270 60 72)"/>
+          <polygon points="56,40 64,40 60,4" transform="rotate(300 60 72)"/>
+          <polygon points="56,40 64,40 60,4" transform="rotate(330 60 72)"/>
+        </g>
+        <g fill="url(#g-gold)" stroke="#3b2306" stroke-width="2" stroke-linejoin="round">
+          <path d="M60 8 L70 44 L50 44 Z" transform="rotate(-58 60 48)" opacity=".85"/>
+          <path d="M60 8 L70 44 L50 44 Z" transform="rotate(58 60 48)" opacity=".85"/>
+          <path d="M60 8 L70 44 L50 44 Z" transform="rotate(-30 60 48)"/>
+          <path d="M60 8 L70 44 L50 44 Z" transform="rotate(30 60 48)"/>
+          <path d="M60 4 L70 44 L50 44 Z"/>
+        </g>
+        <path d="M32 40 H88 V92 C88 112 76 124 60 131 C44 124 32 112 32 92 Z" fill="url(#g-gold)" stroke="#3b2306" stroke-width="2.5" stroke-linejoin="round"/>
+        <rect x="32" y="48" width="56" height="9" fill="#3b2306" opacity=".85"/>
+        <g fill="#ffe89a">
+          <circle cx="40" cy="52.5" r="1.8"/><circle cx="50" cy="52.5" r="1.8"/><circle cx="60" cy="52.5" r="2.4"/><circle cx="70" cy="52.5" r="1.8"/><circle cx="80" cy="52.5" r="1.8"/>
+        </g>
+        <path d="M39 67 Q49 58 59 67 Q49 76 39 67 Z" fill="#2a1704"/>
+        <path d="M61 67 Q71 58 81 67 Q71 76 61 67 Z" fill="#2a1704"/>
+        <circle class="gem" cx="49" cy="67" r="3.8" fill="url(#g-gem)"/>
+        <circle class="gem" cx="71" cy="67" r="3.8" fill="url(#g-gem)"/>
+        <path d="M60 73 L55 87 H65 Z" fill="#c07a1a" stroke="#3b2306" stroke-width="1.5" stroke-linejoin="round"/>
+        <rect x="46" y="95" width="28" height="10" rx="2" fill="#2a1704"/>
+        <path d="M52 95 V105 M58 95 V105 M64 95 V105 M70 95 V105" stroke="#f2b33d" stroke-width="1.6"/>
+        <circle cx="30" cy="80" r="6" fill="url(#g-gold)" stroke="#3b2306" stroke-width="2"/>
+        <circle cx="90" cy="80" r="6" fill="url(#g-gold)" stroke="#3b2306" stroke-width="2"/>
+        <path d="M38 102 l4 6 l-2 8 M82 60 l3 5 l-1 7" stroke="#3b2306" stroke-width="1.3" fill="none" opacity=".7" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <h1 class="title"><span class="t1">Relic</span><span class="t2">Rush</span></h1>
+    <p class="tagline">You stole the idol. Now run.</p>
     <div class="stats">
-      <div><span class="stat-label">Best</span><span id="menu-best" class="stat-value">0</span></div>
-      <div><span class="stat-label">Coins</span><span id="menu-coins" class="stat-value">0</span></div>
+      <div class="stat"><svg class="stat-icon"><use href="#i-trophy"/></svg><div><span class="stat-label">Best</span><span id="menu-best" class="stat-value">0</span></div></div>
+      <div class="stat"><svg class="stat-icon coin"><use href="#i-coin"/></svg><div><span class="stat-label">Coins</span><span id="menu-coins" class="stat-value">0</span></div></div>
     </div>
-    <button id="btn-play" class="btn btn-primary">Run</button>
+    <button id="btn-play" class="btn btn-primary btn-run"><svg><use href="#i-play"/></svg><span>Run</span></button>
     <div class="row">
-      <button id="btn-shop" class="btn">Upgrades</button>
-      <button id="btn-sound" class="btn">Sound: On</button>
+      <button id="btn-shop" class="btn"><svg><use href="#i-gem"/></svg><span>Upgrades</span></button>
+      <button id="btn-settings" class="btn"><svg><use href="#i-sliders"/></svg><span>Settings</span></button>
     </div>
-    <p class="hint">Swipe or use arrow keys. &larr; &rarr; move / turn &nbsp; &uarr; jump &nbsp; &darr; slide</p>
+    <p id="menu-controls" class="controls-hint">Swipe to move &middot; <kbd>&larr;</kbd><kbd>&rarr;</kbd> turn &middot; <kbd>&uarr;</kbd> jump &middot; <kbd>&darr;</kbd> slide</p>
   </div>
 </div>
 
+<!-- Game over -->
 <div id="gameover" class="overlay" hidden>
-  <div class="panel">
-    <h2 id="go-title">Caught!</h2>
-    <div id="go-best" class="best-badge" hidden>New best!</div>
-    <div class="stats stats-col">
-      <div><span class="stat-label">Score</span><span id="go-score" class="stat-value">0</span></div>
-      <div><span class="stat-label">Distance</span><span id="go-dist" class="stat-value">0 m</span></div>
-      <div><span class="stat-label">Coins</span><span id="go-coins" class="stat-value">0</span></div>
-      <div><span class="stat-label">Best</span><span id="go-hi" class="stat-value">0</span></div>
+  <div class="panel panel-go">
+    <div class="go-left">
+      <div class="kicker">Run over</div>
+      <h2 id="go-title">Caught!</h2>
+      <p id="go-reason" class="go-reason">The guardians dragged you back to the temple.</p>
+      <div id="go-best" class="best-badge" hidden><span id="go-confetti" class="confetti" aria-hidden="true"></span><svg><use href="#i-trophy"/></svg><span>New best!</span></div>
+      <div class="go-score"><span class="stat-label">Score</span><span id="go-score" class="go-score-value">0</span></div>
+      <div class="stats stats-row">
+        <div class="stat-col"><span class="stat-label">Distance</span><span id="go-dist" class="stat-value">0 m</span></div>
+        <div class="stat-col"><span class="stat-label">Coins</span><span id="go-coins" class="stat-value coin-val">0</span></div>
+        <div class="stat-col"><span class="stat-label">Best</span><span id="go-hi" class="stat-value">0</span></div>
+      </div>
     </div>
-    <button id="btn-again" class="btn btn-primary">Run again</button>
-    <div class="row">
-      <button id="btn-shop2" class="btn">Upgrades</button>
+    <div class="go-right">
+      <button id="btn-again" class="btn btn-primary btn-run"><svg><use href="#i-play"/></svg><span>Run again</span></button>
+      <div class="row">
+        <button id="btn-shop2" class="btn"><svg><use href="#i-gem"/></svg><span>Upgrades</span></button>
+        <button id="btn-menu" class="btn btn-ghost"><svg><use href="#i-exit"/></svg><span>Title</span></button>
+      </div>
     </div>
   </div>
 </div>
 
+<!-- Pause -->
 <div id="pause" class="overlay" hidden>
   <div class="panel">
     <h2>Paused</h2>
-    <button id="btn-resume" class="btn btn-primary">Resume</button>
+    <div class="pause-stats"><span id="pause-score">0</span><span class="dot"></span><span id="pause-dist">0 m</span></div>
+    <button id="btn-resume" class="btn btn-primary btn-run"><svg><use href="#i-play"/></svg><span>Resume</span></button>
+    <div class="setting-row">
+      <span class="setting-label">Sound</span>
+      <button class="btn btn-toggle" data-action="sound" aria-pressed="true"><svg><use href="#i-sound"/></svg><span>On</span></button>
+    </div>
+    <div class="setting-row">
+      <span class="setting-label">Quality</span>
+      <div class="seg" data-role="quality" role="group" aria-label="Quality">
+        <button data-q="auto">Auto</button><button data-q="low">Low</button><button data-q="medium">Med</button><button data-q="high">High</button>
+      </div>
+    </div>
+    <div class="setting-note" data-role="quality-note"></div>
+    <button id="btn-quit" class="btn btn-ghost"><svg><use href="#i-exit"/></svg><span>Quit to title</span></button>
   </div>
 </div>
 
+<!-- Settings (from the title screen) -->
+<div id="settings" class="overlay" hidden>
+  <div class="panel">
+    <h2>Settings</h2>
+    <div class="setting-row">
+      <span class="setting-label">Sound &amp; music</span>
+      <button class="btn btn-toggle" data-action="sound" aria-pressed="true"><svg><use href="#i-sound"/></svg><span>On</span></button>
+    </div>
+    <div class="setting-row">
+      <span class="setting-label">Quality</span>
+      <div class="seg" data-role="quality" role="group" aria-label="Quality">
+        <button data-q="auto">Auto</button><button data-q="low">Low</button><button data-q="medium">Med</button><button data-q="high">High</button>
+      </div>
+    </div>
+    <div class="setting-note" data-role="quality-note"></div>
+    <div class="setting-row">
+      <span class="setting-label">Tutorial</span>
+      <button id="btn-tutorial" class="btn btn-small"><span>Show again</span></button>
+    </div>
+    <p class="fine-print">Keys: <kbd>&larr;</kbd><kbd>&rarr;</kbd> lanes / turn &nbsp; <kbd>&uarr;</kbd> jump &nbsp; <kbd>&darr;</kbd> slide &nbsp; <kbd>P</kbd> pause &nbsp; <kbd>M</kbd> mute</p>
+    <button id="btn-settings-close" class="btn btn-primary">Done</button>
+  </div>
+</div>
+
+<!-- Upgrade shop -->
 <div id="shop" class="overlay" hidden>
-  <div class="panel panel-wide">
-    <h2>Upgrades</h2>
-    <div class="shop-coins"><span class="coin-icon"></span><span id="shop-coins">0</span></div>
+  <div class="panel panel-wide panel-shop">
+    <div class="shop-head">
+      <h2>Upgrades</h2>
+      <div class="coin-pill"><svg class="coin"><use href="#i-coin"/></svg><span id="shop-coins">0</span></div>
+    </div>
     <div id="shop-list" class="shop-list"></div>
     <button id="btn-shop-close" class="btn btn-primary">Back</button>
   </div>
