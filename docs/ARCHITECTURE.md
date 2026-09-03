@@ -92,6 +92,17 @@ hint(text), blocksTap() }`. Reads `game.run` (`score, distance, coins, multiplie
 `game.startRun(), openShop(), closeShop(), buyUpgrade(key), togglePause(), toggleSound(), setQuality(q)`.
 Game events: `start, death, gameover, coin, power, powerend, stumble, pause, resume, settings, upgrade`.
 
+## Rendering rules
+* Never add dynamic lights (PointLight/SpotLight) at runtime: three recompiles every shader whenever the
+  light count changes. Fake glow with emissive materials plus additive sprites (see torches in scenery.js).
+* Post-processing renders into half-float targets: a single NaN pixel smears across the whole frame via
+  bloom. Avoid `pow(0, n)`, `normalize(vec3(0))`, `smoothstep(a, a, x)` and zero-scale primitives
+  (a singular matrix zeroes the normals).
+* Corner ownership: a turning piece draws its corner tile and the walls that close it. Wide side
+  decoration (ground strips, trees, water) stops 16 m before the open side of a turn; the next piece
+  decorates that inside-corner square as the start of its own side. Thin edge elements (walls, rock
+  faces, path lips) run all the way to the tile.
+
 ## Game states
 `menu → running → dying (slow-mo, 1.5 s) → dead → running…`; `paused`; `shop`.
 Test hook: `window.__game` exposes the `Game` instance (`state, run, power, player, track, ...`).

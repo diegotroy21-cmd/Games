@@ -332,6 +332,20 @@ export class Game {
       if (this.time - p.lastFootstep > cadence * 0.5) { p.lastFootstep = this.time; this.audio.footstep(p.piece.kind); if (this.quality !== 'low') this.particles.emit('dust', p.worldPos, { count: 1, small: true }); }
     }
 
+    // Ambient biome particles around the runner (leaves, mist, embers)
+    if (this.quality !== 'low' && (running || dying)) {
+      this._ambientTimer = (this._ambientTimer || 0) - dt;
+      if (this._ambientTimer <= 0) {
+        const k = p.piece.kind;
+        this._ambientTimer = 0.35;
+        const ahead = this._ambientPos || (this._ambientPos = new THREE.Vector3());
+        ahead.copy(p.worldPos).addScaledVector(p.piece.fwd, 14);
+        if (k === 'jungle') this.particles.emit('leaf', ahead, { count: 2 });
+        else if (k === 'cliff' || k === 'bridge') { ahead.addScaledVector(p.piece.right, (Math.random() < 0.5 ? -1 : 1) * 9); ahead.y -= 2; this.particles.emit('mist', ahead, { count: 2 }); }
+        else if (k === 'temple' || k === 'ruins') { ahead.addScaledVector(p.piece.right, (Math.random() - 0.5) * 6); ahead.y += 1.5; this.particles.emit('ember', ahead, { count: 1 }); }
+      }
+    }
+
     // Monkeys
     this.monkeys.update(dt, {
       sample: (dist, out) => this.track.sampleBehind(p.piece, p.u, p.lateral, dist, out),
