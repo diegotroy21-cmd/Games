@@ -250,7 +250,7 @@ function streakMaterial() {
       uniform float uAlpha; uniform vec3 uColor; uniform vec3 uColor2;
       varying float vT; varying float vF;
       void main(){
-        float a = pow(1.0 - vT, 1.6) * uAlpha * vF;
+        float a = pow(max(0.001, 1.0 - vT), 1.6) * uAlpha * vF;
         gl_FragColor = vec4(mix(uColor * 1.6, uColor2, vT) * a, a);
       }`,
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, toneMapped: false,
@@ -259,7 +259,7 @@ function streakMaterial() {
 
 // Magnet sparks: a few small diamonds orbiting the runner, moved entirely in the vertex shader.
 function buildSparks(n) {
-  const base = new THREE.OctahedronGeometry(0.045, 0).toNonIndexed();
+  const base = new THREE.OctahedronGeometry(0.045, 0);
   const parts = [];
   for (let i = 0; i < n; i++) {
     const g = base.clone();

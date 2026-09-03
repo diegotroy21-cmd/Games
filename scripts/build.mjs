@@ -29,8 +29,10 @@ const result = await build({
 });
 if (result.errors.length) process.exit(1);
 
-const html = readFileSync(resolve(root, 'public/index.html'), 'utf8');
-const css = readFileSync(resolve(root, 'public/styles.css'), 'utf8');
+// HTML_DIR overrides where index.html/styles.css are read from (useful while public/ is being edited).
+const htmlDir = process.env.HTML_DIR ? resolve(process.env.HTML_DIR) : resolve(root, 'public');
+const html = readFileSync(resolve(htmlDir, 'index.html'), 'utf8');
+const css = readFileSync(resolve(htmlDir, 'styles.css'), 'utf8');
 const js = readFileSync(outDev, 'utf8').replace(/<\/script/gi, '<\\/script');
 
 // Function replacements: a string replacement would interpret "$&"/"$'" sequences inside the bundle.

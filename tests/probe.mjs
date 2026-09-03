@@ -12,6 +12,10 @@ const args = process.argv.slice(2);
 const opt = (name, def) => { const i = args.indexOf('--' + name); return i >= 0 ? (args[i + 1] && !args[i + 1].startsWith('--') ? args[i + 1] : true) : def; };
 const seconds = Number(opt('seconds', 3));
 const evalExpr = opt('eval', null);
+let preExpr = opt('pre', null); // evaluated right after the run starts (before waiting); `g` = Game
+const preFile = opt('prefile', null); // same, read from a file (avoids shell quoting)
+if (preFile) preExpr = (await import('node:fs')).readFileSync(preFile, 'utf8');
+const teleport = opt('teleport', null); // jump the runner to the first piece of this kind (pruning the track behind)
 const shot = opt('shot', null);
 const seed = opt('seed', null);
 const quality = opt('quality', 'low');
@@ -30,10 +34,34 @@ page.on('pageerror', (e) => logs.push('[pageerror] ' + e.message + (e.stack ? '\
 page.on('console', (m) => logs.push('[' + m.type() + '] ' + m.text().slice(0, 600)));
 const base = url || pathToFileURL(resolve(root, dist ? resolve(dist, 'index.html') : 'dist/index.html')).href;
 await page.goto(base + (base.includes('?') ? '&' : '?') + 'quality=' + quality + (seed ? '&seed=' + seed : ''));
-await page.waitForFunction(() => window.__game && window.__game.state === 'menu', null, { timeout: 20000 });
+try {
+  await page.waitForFunction(() => window.__game && window.__game.state === 'menu', null, { timeout: 20000 });
+} catch (e) {
+  console.log('BOOT TIMEOUT: the game never reached the menu state.');
+  if (logs.length) console.log('console:\n' + logs.join('\n'));
+  await browser.close();
+  process.exit(2);
+}
 if (start) {
   await page.evaluate(() => window.__game.startRun());
   await page.waitForFunction(() => window.__game.state === 'running', null, { timeout: 5000 });
+}
+if (teleport) {
+  const out = await page.evaluate((kind) => {
+    const g = window.__game;
+    let p = g.track.root, n = 0; const chain = [p];
+    while (p.kind !== kind && n < 120) { g.track.ensureAhead(p, 0, Infinity); const nx = p.next.straight || p.next.left || p.next.right; if (!nx) break; p = nx; chain.push(p); n++; }
+    for (let i = 0; i + 1 < chain.length; i++) g.track.advance(chain[i], chain[i + 1]);
+    g.player.piece = p; g.player.u = p.contentStart + 4; g.player.lane = 0; g.player.lateral = 0; g.player.updateWorld();
+    g._headingAngle = p.angle; g.followCam.reset(p.angle, g._computeAnchor()); g.track.ensureAhead(p, g.player.u, Infinity);
+    window.__tp = p;
+    return { kind: p.kind, side: p.side, end: p.end, len: p.length, contentStart: p.contentStart, branch: p.branch, prev: p.prev && [p.prev.kind, p.prev.end, p.prev.side], obstacles: p.obstacles.map((o) => o.type + '@' + o.u.toFixed(0)), pieces: g.track.pieces.size };
+  }, teleport);
+  console.log('teleport:', JSON.stringify(out));
+}
+if (preExpr) {
+  const out = await page.evaluate((expr) => { const g = window.__game; try { return JSON.stringify(eval(expr)); } catch (e) { return 'PRE ERROR: ' + e.message; } }, preExpr);
+  console.log('pre:', out);
 }
 if (keys) {
   for (const k of keys.split(',')) {

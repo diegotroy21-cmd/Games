@@ -123,12 +123,14 @@ export function createWaterMaterial({ color = 0x1f6f7a, deep = 0x0b2e3a, foam = 
       uFogNear: { value: 40 }, uFogFar: { value: 160 },
     },
     vertexShader: `
-      varying vec3 vW; varying vec2 vUv;
-      void main(){ vUv = uv; vec4 wp = modelMatrix * vec4(position,1.0); vW = wp.xyz; gl_Position = projectionMatrix * viewMatrix * wp; }`,
+      varying vec3 vW; varying vec2 vUv; varying float vDist;
+      void main(){ vUv = uv; vec4 wp = modelMatrix * vec4(position,1.0); vW = wp.xyz; vec4 mv = viewMatrix * wp; vDist = -mv.z; gl_Position = projectionMatrix * mv; }`,
+    // Note: avoid pow(0, n) and division by depth here; some GL implementations return NaN, which the
+    // half-float bloom chain smears across the whole frame.
     fragmentShader: `
       uniform float uTime; uniform vec3 uColor; uniform vec3 uDeep; uniform vec3 uFoam;
       uniform vec3 uFogColor; uniform float uFogNear; uniform float uFogFar;
-      varying vec3 vW; varying vec2 vUv;
+      varying vec3 vW; varying vec2 vUv; varying float vDist;
       float n(vec2 p){ return sin(p.x) * sin(p.y); }
       void main(){
         vec2 p = vW.xz * 0.35;
@@ -137,10 +139,11 @@ export function createWaterMaterial({ color = 0x1f6f7a, deep = 0x0b2e3a, foam = 
         vec3 c = mix(uDeep, uColor, 0.55 + 0.45 * r);
         float foam = smoothstep(0.62, 0.9, r);
         c = mix(c, uFoam, foam * 0.5);
-        c += vec3(0.08) * pow(max(0.0, r), 3.0);
-        float dist = gl_FragCoord.z / gl_FragCoord.w;
-        float f = smoothstep(uFogNear, uFogFar, dist);
-        gl_FragColor = vec4(mix(c, uFogColor, f), 0.9);
+        float rp = max(0.0, r);
+        c += vec3(0.08) * rp * rp * rp;
+        float f = smoothstep(uFogNear, max(uFogNear + 1.0, uFogFar), vDist);
+        c = clamp(mix(c, uFogColor, f), 0.0, 1.0);
+        gl_FragColor = vec4(c, 0.9);
       }`,
     transparent: true,
     depthWrite: false,
@@ -178,8 +181,8 @@ export function createWaterfallMaterial({ color = 0xd9f4ff, tint = 0x5aa9c8 } = 
         float bottom = smoothstep(0.0, 0.25, vUv.y);
         float alpha = (0.35 + 0.55 * s) * edge * mix(0.35, 1.0, bottom);
         vec3 c = mix(uTint, uColor, s * 0.9 + 0.1);
-        float f = smoothstep(uFogNear, uFogFar, vDist);
-        gl_FragColor = vec4(mix(c, uFogColor, f * 0.8), alpha);
+        float f = smoothstep(uFogNear, max(uFogNear + 1.0, uFogFar), vDist);
+        gl_FragColor = vec4(clamp(mix(c, uFogColor, f * 0.8), 0.0, 1.0), clamp(alpha, 0.0, 1.0));
       }`,
     transparent: true,
     depthWrite: false,
@@ -199,7 +202,7 @@ export function createGlowMaterial(color = 0x66ccff, power = 2.0, intensity = 1.
     fragmentShader: `
       uniform vec3 uColor; uniform float uPower; uniform float uInt; uniform float uTime;
       varying vec3 vN; varying vec3 vV;
-      void main(){ float f = pow(1.0 - abs(dot(vN, vV)), uPower); float pulse = 0.85 + 0.15 * sin(uTime * 5.0); gl_FragColor = vec4(uColor * uInt * pulse, f * 0.9 + 0.05); }`,
+      void main(){ float f = pow(max(0.001, 1.0 - abs(dot(vN, vV))), uPower); float pulse = 0.85 + 0.15 * sin(uTime * 5.0); gl_FragColor = vec4(uColor * uInt * pulse, clamp(f * 0.9 + 0.05, 0.0, 1.0)); }`,
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, toneMapped: false,
   });
   tracked.add(m);
