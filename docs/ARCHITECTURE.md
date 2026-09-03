@@ -76,7 +76,7 @@ the runner at a distance driven by `threat`, and pile onto the runner after `pou
 * `smashObstacle(obj)` → play a break-apart / knock-over effect on that object (shield/boost hits).
 
 ### `src/collectibles.js` (done) — coins and power-up pickups. `src/particles.js` —
-`createParticles(scene)` → `{ emit(type, worldPos, opts), update(dt, camera), reset() }` with types
+`createParticles(scene, renderer)` → `{ emit(type, worldPos, opts), update(dt, camera), reset() }` with types
 `dust, slide, sparkle, burst, smash, shieldpop, ember, leaf, mist, splash, smoke`.
 
 ### `src/audio.js` — `createAudio(settings)`

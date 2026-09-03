@@ -26,7 +26,7 @@ const exe = process.env.CHROME_PATH || ['/opt/pw-browsers/chromium-1194/chrome-l
 const browser = await chromium.launch({ executablePath: exe, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'] });
 const page = await browser.newPage({ viewport: { width, height } });
 const logs = [];
-page.on('pageerror', (e) => logs.push('[pageerror] ' + e.message));
+page.on('pageerror', (e) => logs.push('[pageerror] ' + e.message + (e.stack ? '\n  ' + String(e.stack).split('\n').slice(0, 4).join('\n  ') : '')));
 page.on('console', (m) => logs.push('[' + m.type() + '] ' + m.text().slice(0, 600)));
 const base = url || pathToFileURL(resolve(root, dist ? resolve(dist, 'index.html') : 'dist/index.html')).href;
 await page.goto(base + (base.includes('?') ? '&' : '?') + 'quality=' + quality + (seed ? '&seed=' + seed : ''));

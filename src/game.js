@@ -40,7 +40,7 @@ export class Game {
     // Subsystems
     this.env = createEnvironment(scene, renderer, quality);
     this.collectibles = createCollectibles(scene, this.track);
-    this.particles = createParticles(scene);
+    this.particles = createParticles(scene, renderer);
     this.audio = createAudio(this.save.settings);
     this.character = createCharacter();
     scene.add(this.character.group);
@@ -183,6 +183,28 @@ export class Game {
     this.hud.showGameOver(this.run);
   }
 
+  // Leave a run (from the pause screen) and return to the title screen with a fresh preview track.
+  quitToMenu() {
+    if (this.state === 'menu') return;
+    this.state = 'menu';
+    this.audio.setPaused(false);
+    this.audio.stopMusic(0.5);
+    this.collectibles.reset();
+    this.particles.reset();
+    this.power = { shield: 0, magnet: 0, boost: 0 };
+    this.threat = 0;
+    this.track.reset((Math.random() * 1e9) | 0);
+    this.player.reset(this.track.root);
+    this.character.reset();
+    this.monkeys.reset();
+    this._headingAngle = 0;
+    this.followCam.reset(0, this._computeAnchor());
+    this.run = this._freshRun();
+    this.hud.showMenu('menu');
+    this.events.emit('menu');
+  }
+  showMenu() { this.quitToMenu(); }
+
   togglePause() {
     if (this.state === 'running') { this.state = 'paused'; this.audio.setPaused(true); this.hud.showPause(); this.events.emit('pause'); }
     else if (this.state === 'paused') { this.state = 'running'; this.audio.setPaused(false); this.hud.hideMenus(); this.input.clear(); this.events.emit('resume'); }
@@ -283,8 +305,9 @@ export class Game {
     const g = this.character.group;
     g.position.copy(p.worldPos);
     g.rotation.y = this._headingAngle + (p.alive ? -p.lateralVel * 0.045 : 0);
+    const idle = this.state === 'menu';
     this.character.update(dt, {
-      state: p.state, speed: p.speed, speed01: p.speed01, y: p.y, vy: p.vy, lateralVel: p.lateralVel,
+      state: idle ? 'idle' : p.state, speed: idle ? 0 : p.speed, speed01: p.speed01, y: p.y, vy: p.vy, lateralVel: p.lateralVel,
       turnLean: p.turnLean, stumble01: p.stumbleTimer / CONFIG.stumbleWindow, shield: p.shield, boost: p.boost,
       magnet: this.power.magnet > 0, dead: !p.alive, deathType: p.deathType, deadTime: p.deadTime, time: this.time,
     });

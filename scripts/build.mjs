@@ -33,9 +33,11 @@ const html = readFileSync(resolve(root, 'public/index.html'), 'utf8');
 const css = readFileSync(resolve(root, 'public/styles.css'), 'utf8');
 const js = readFileSync(outDev, 'utf8').replace(/<\/script/gi, '<\\/script');
 
+// Function replacements: a string replacement would interpret "$&"/"$'" sequences inside the bundle.
 const single = html
-  .replace('<link rel="stylesheet" href="./styles.css">', `<style>\n${css}\n</style>`)
-  .replace('<script src="./game.js"></script>', `<script>\n${js}\n</script>`);
+  .replace('<link rel="stylesheet" href="./styles.css">', () => `<style>\n${css}\n</style>`)
+  .replace('<script src="./game.js"></script>', () => `<script>\n${js}\n</script>`);
+if (!single.includes('</style>') || !single.includes('\n</script>')) throw new Error('index.html template markers not found');
 
 const target = outDir ? resolve(outDir, 'index.html') : resolve(root, 'dist/index.html');
 mkdirSync(dirname(target), { recursive: true });
