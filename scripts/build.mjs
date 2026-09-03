@@ -7,8 +7,13 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const outDev = resolve(root, 'public/game.js');
-const minify = !process.argv.includes('--no-minify');
+const argv = process.argv.slice(2);
+const outdirArg = argv.indexOf('--outdir');
+// --outdir <dir> builds into a private directory (used by parallel agents/tests) instead of public/ + dist/.
+const outDir = outdirArg >= 0 ? resolve(root, argv[outdirArg + 1]) : null;
+const outDev = outDir ? resolve(outDir, 'game.js') : resolve(root, 'public/game.js');
+const minify = !argv.includes('--no-minify');
+if (outDir) mkdirSync(outDir, { recursive: true });
 
 const result = await build({
   entryPoints: [resolve(root, 'src/main.js')],
@@ -32,6 +37,7 @@ const single = html
   .replace('<link rel="stylesheet" href="./styles.css">', `<style>\n${css}\n</style>`)
   .replace('<script src="./game.js"></script>', `<script>\n${js}\n</script>`);
 
-mkdirSync(resolve(root, 'dist'), { recursive: true });
-writeFileSync(resolve(root, 'dist/index.html'), single);
-console.log(`dist/index.html written (${(single.length / 1024).toFixed(0)} KB)`);
+const target = outDir ? resolve(outDir, 'index.html') : resolve(root, 'dist/index.html');
+mkdirSync(dirname(target), { recursive: true });
+writeFileSync(target, single);
+console.log(`${outDir ? target : 'dist/index.html'} written (${(single.length / 1024).toFixed(0)} KB)`);

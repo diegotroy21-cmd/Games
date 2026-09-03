@@ -1,6 +1,6 @@
 // Dev probe: opens the built game headless, optionally starts a run and auto-plays for N seconds,
 // evaluates a JS expression against window.__game, prints console output and saves a screenshot.
-//   node tests/probe.mjs --start --seconds 6 --eval "({coins: g.collectibles.count})" --shot /tmp/x.png [--seed 42] [--quality low] [--width 960 --height 600] [--keys up,left,...]
+//   node tests/probe.mjs --start --seconds 6 --eval "({coins: g.collectibles.count})" --shot /tmp/x.png [--seed 42] [--quality low] [--width 960 --height 600] [--keys up,left,...] [--dist <dir built with build.mjs --outdir>]
 // Inside --eval, `g` is the Game instance. --auto drives the runner with a simple scripted player.
 import { chromium } from 'playwright-core';
 import { resolve, dirname } from 'node:path';
@@ -20,6 +20,7 @@ const start = !!opt('start', false);
 const auto = !!opt('auto', false);
 const keys = opt('keys', null);
 const url = opt('url', null);
+const dist = opt('dist', null);
 const exe = process.env.CHROME_PATH || ['/opt/pw-browsers/chromium-1194/chrome-linux/chrome'].find(existsSync);
 
 const browser = await chromium.launch({ executablePath: exe, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'] });
@@ -27,7 +28,7 @@ const page = await browser.newPage({ viewport: { width, height } });
 const logs = [];
 page.on('pageerror', (e) => logs.push('[pageerror] ' + e.message));
 page.on('console', (m) => logs.push('[' + m.type() + '] ' + m.text().slice(0, 600)));
-const base = url || pathToFileURL(resolve(root, 'dist/index.html')).href;
+const base = url || pathToFileURL(resolve(root, dist ? resolve(dist, 'index.html') : 'dist/index.html')).href;
 await page.goto(base + (base.includes('?') ? '&' : '?') + 'quality=' + quality + (seed ? '&seed=' + seed : ''));
 await page.waitForFunction(() => window.__game && window.__game.state === 'menu', null, { timeout: 20000 });
 if (start) {
