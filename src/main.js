@@ -4,22 +4,26 @@ import { Input } from './input.js';
 import { isMobile } from './util.js';
 import { loadSave } from './save.js';
 
-function pickQuality() {
-  const params = new URLSearchParams(location.search);
-  if (params.get('quality')) return params.get('quality');
-  const s = loadSave().settings.quality;
-  if (s && s !== 'auto') return s;
+function autoQuality() {
   const mobile = isMobile();
   const cores = navigator.hardwareConcurrency || 4;
   if (mobile) return cores >= 6 ? 'medium' : 'low';
   return 'high';
 }
+function pickQuality() {
+  const params = new URLSearchParams(location.search);
+  if (params.get('quality')) return params.get('quality');
+  const s = loadSave().settings.quality;
+  if (s && s !== 'auto') return s;
+  return autoQuality();
+}
+const ratioFor = (q) => Math.min(window.devicePixelRatio || 1, q === 'high' ? 2 : q === 'medium' ? 1.5 : 1);
 
 function boot() {
   const canvas = document.getElementById('game');
   const quality = pickQuality();
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: quality === 'high', powerPreference: 'high-performance', stencil: false });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality === 'high' ? 2 : quality === 'medium' ? 1.5 : 1));
+  renderer.setPixelRatio(ratioFor(quality));
   renderer.setSize(window.innerWidth, window.innerHeight, false);
   renderer.shadowMap.enabled = quality !== 'low';
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -33,6 +37,7 @@ function boot() {
   const input = new Input(document.getElementById('touch'));
   const game = new Game({ renderer, scene, camera, input, quality });
   window.__game = game; // test hook
+  game.resolveAutoQuality = autoQuality;
 
   const onResize = () => {
     const w = window.innerWidth, h = window.innerHeight;
@@ -45,8 +50,9 @@ function boot() {
 
   // Adaptive resolution: if the device cannot hold a smooth frame rate, step the pixel ratio down
   // (never below 0.75); step back up when there is headroom for a while.
-  const maxRatio = renderer.getPixelRatio();
+  let maxRatio = renderer.getPixelRatio();
   let ratio = maxRatio, slowSeconds = 0, fastSeconds = 0;
+  game.events.on('quality', (q) => { maxRatio = ratioFor(q); ratio = maxRatio; renderer.setPixelRatio(ratio); onResize(); });
   function adaptResolution(fps) {
     if (fps < 42 && ratio > 0.75) { slowSeconds++; fastSeconds = 0; }
     else if (fps > 57 && ratio < maxRatio) { fastSeconds++; slowSeconds = 0; }

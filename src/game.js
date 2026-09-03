@@ -211,7 +211,20 @@ export class Game {
     else if (this.state === 'paused') { this.state = 'running'; this.audio.setPaused(false); this.hud.hideMenus(); this.input.clear(); this.events.emit('resume'); }
   }
   toggleSound() { const s = this.save.settings; s.sound = !s.sound; s.music = s.sound; this.audio.setEnabled(s.sound, s.music); writeSave(this.save); this.events.emit('settings'); }
-  setQuality(q) { this.save.settings.quality = q; writeSave(this.save); this.events.emit('settings'); }
+  // Quality can be changed live from the pause/settings screens; 'auto' resolves in main.js.
+  setQuality(q) {
+    this.save.settings.quality = q; writeSave(this.save);
+    const resolved = q === 'auto' ? (this.resolveAutoQuality ? this.resolveAutoQuality() : 'high') : q;
+    if (resolved !== this.quality) {
+      this.quality = resolved;
+      this.effects.setQuality(resolved);
+      this.env.setQuality(resolved);
+      this.renderer.shadowMap.enabled = resolved !== 'low';
+      this.scene.traverse((o) => { if (o.material) { const ms = Array.isArray(o.material) ? o.material : [o.material]; for (const m of ms) m.needsUpdate = true; } });
+      this.events.emit('quality', resolved);
+    }
+    this.events.emit('settings');
+  }
 
   openShop() { if (this.state === 'menu' || this.state === 'dead') { this._shopReturn = this.state; this.state = 'shop'; this.hud.showShop(); } }
   closeShop() { if (this.state === 'shop') { this.state = this._shopReturn || 'menu'; this.hud.showMenu(this.state === 'dead' ? 'dead' : 'menu'); } }
