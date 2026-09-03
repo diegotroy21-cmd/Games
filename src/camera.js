@@ -75,6 +75,20 @@ export class FollowCamera {
     this._apply();
   }
 
+  // Title-screen camera: slow orbit around the idle runner.
+  updateMenu(dt, playerPos, time) {
+    const a = time * 0.22;
+    const r = 5.2;
+    const tp = this._tmp.set(playerPos.x + Math.sin(a) * r, playerPos.y + 2.0 + Math.sin(time * 0.5) * 0.2, playerPos.z + Math.cos(a) * r);
+    const tl = this._tmp2.set(playerPos.x, playerPos.y + 1.1, playerPos.z);
+    this.pos.lerp(tp, 1 - Math.exp(-3 * dt));
+    this.look.lerp(tl, 1 - Math.exp(-4 * dt));
+    this.fov = damp(this.fov, CONFIG.fovBase - 6, 2, dt);
+    this.angle = a + Math.PI; // keep frame vectors coherent for whatever reads them
+    this._updateFrame();
+    this._apply();
+  }
+
   _apply() {
     const cam = this.camera;
     cam.position.copy(this.pos);

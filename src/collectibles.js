@@ -1,15 +1,19 @@
 // Coins and power-ups: one InstancedMesh of spinning coins (vertex-shader rotation) plus small
 // glowing power-up pickups. Handles collection tests and magnet attraction.
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { applySpin, createGlowMaterial } from './fx-materials.js';
 
 const MAX_COINS = 600;
 const HIDDEN = new THREE.Matrix4().makeScale(0, 0, 0);
 
 export function createCollectibles(scene, track) {
-  const coinGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.1, 18);
-  coinGeo.rotateX(Math.PI / 2); // face along Z so spinning around Y shows the flat face
-  // add a raised rim look by merging a smaller inner disc
+  // Bevelled coin: a thin outer disc plus a thicker inner disc, facing along Z so the Y-spin shows the face.
+  const outer = new THREE.CylinderGeometry(0.36, 0.36, 0.07, 20);
+  const inner = new THREE.CylinderGeometry(0.27, 0.27, 0.12, 20);
+  const coinGeo = mergeGeometries([outer, inner], false);
+  coinGeo.rotateX(Math.PI / 2);
+  outer.dispose(); inner.dispose();
   const coinMat = applySpin(new THREE.MeshStandardMaterial({ color: 0xffc72c, emissive: 0xff9d00, emissiveIntensity: 0.55, metalness: 0.85, roughness: 0.25 }), 3.2);
   const mesh = new THREE.InstancedMesh(coinGeo, coinMat, MAX_COINS);
   mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);

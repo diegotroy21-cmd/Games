@@ -143,6 +143,7 @@ export class Game {
     this.monkeys.reset();
     this._headingAngle = 0;
     this.followCam.reset(0, this._computeAnchor());
+    this.followCam.angle = 0;
     this.state = 'running';
     if (this.save.upgrades.head > 0) this.activatePower('boost', true);
     this.audio.startMusic();
@@ -296,7 +297,8 @@ export class Game {
     const targetAngle = p.piece.angle;
     this._headingAngle = damp(this._headingAngle, this._headingAngle + wrapAngleDelta(this._headingAngle, targetAngle), 1 / CONFIG.turnHeadingTime * 1.4, dt);
     const anchor = this._computeAnchor();
-    this.followCam.update(dt, {
+    if (this.state === 'menu') this.followCam.updateMenu(dt, p.worldPos, this.time);
+    else this.followCam.update(dt, {
       anchor, playerPos: p.worldPos, targetAngle, speed01: p.speed01, boost: this.power.boost > 0,
       dead: !p.alive, deathType: p.deathType, playerY: p.y,
     });
