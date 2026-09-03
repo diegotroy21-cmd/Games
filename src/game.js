@@ -28,7 +28,7 @@ export class Game {
     this.runSeed = 1;
     this.run = this._freshRun();
     this.power = { shield: 0, magnet: 0, boost: 0 }; // remaining seconds
-    this.threat = 1;
+    this.threat = 0.35; // monkeys lurk in the background on the title screen
     this.slowmo = 1;
 
     // Track + player
@@ -193,7 +193,7 @@ export class Game {
     this.collectibles.reset();
     this.particles.reset();
     this.power = { shield: 0, magnet: 0, boost: 0 };
-    this.threat = 0;
+    this.threat = 0.35;
     this.track.reset((Math.random() * 1e9) | 0);
     this.player.reset(this.track.root);
     this.character.reset();
