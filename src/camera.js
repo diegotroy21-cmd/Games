@@ -45,10 +45,13 @@ export class FollowCamera {
     if (!ctx.dead) {
       this.angle = dampAngle(this.angle, ctx.targetAngle, 1 / CONFIG.turnHeadingTime * 1.1, dt);
       this._updateFrame();
-      const back = CONFIG.camBack + ctx.speed01 * 0.9 + (ctx.boost ? 0.8 : 0);
-      const height = CONFIG.camHeight + ctx.playerY * 0.35;
+      // Portrait screens see a narrower horizontal slice: sit further back and higher so the lanes,
+      // the runner and the pack all fit.
+      const portrait = this.camera.aspect < 1 ? 1 : 0;
+      const back = CONFIG.camBack + ctx.speed01 * 0.9 + (ctx.boost ? 0.8 : 0) + portrait * 1.8;
+      const height = CONFIG.camHeight + ctx.playerY * 0.35 + portrait * 0.8;
       const tp = this._tmp.copy(ctx.anchor).addScaledVector(this.fwd, -back); tp.y += height;
-      const tl = this._tmp2.copy(ctx.anchor).addScaledVector(this.fwd, CONFIG.camLookAhead); tl.y += CONFIG.camLookHeight + ctx.playerY * 0.5;
+      const tl = this._tmp2.copy(ctx.anchor).addScaledVector(this.fwd, CONFIG.camLookAhead + portrait * 3); tl.y += CONFIG.camLookHeight + ctx.playerY * 0.5;
       this.pos.x = damp(this.pos.x, tp.x, 16, dt); this.pos.y = damp(this.pos.y, tp.y, 10, dt); this.pos.z = damp(this.pos.z, tp.z, 16, dt);
       this.look.x = damp(this.look.x, tl.x, 18, dt); this.look.y = damp(this.look.y, tl.y, 12, dt); this.look.z = damp(this.look.z, tl.z, 18, dt);
       const targetFov = lerp(CONFIG.fovBase, CONFIG.fovMax, clamp(ctx.speed01, 0, 1)) + (ctx.boost ? 6 : 0);
