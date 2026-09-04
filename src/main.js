@@ -64,11 +64,14 @@ function boot() {
     onResize();
   }
 
-  let last = performance.now();
-  let frames = 0, fpsStart = last;
+  let last = null;
+  let frames = 0, fpsStart = performance.now();
   function frame(now) {
     requestAnimationFrame(frame);
-    let dt = (now - last) / 1000; last = now;
+    // rAF timestamps can lag performance.now() (notably on the first frame), so clamp dt to [0, 50 ms]:
+    // a negative dt would flip every exponential smoothing into runaway growth.
+    let dt = last === null ? 1 / 60 : (now - last) / 1000; last = now;
+    if (dt < 0) dt = 0;
     if (dt > 0.05) dt = 0.05; // clamp hitches so physics stays stable
     renderer.info.reset();
     if (game.state === 'paused' || game.state === 'shop') { game.render(dt); return; }

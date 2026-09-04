@@ -312,13 +312,14 @@ function buildCornerTile(env) {
   b.add(unitGeo('cyl', 1, 1, 12), { position: [0, 0.02, zc], scale: [1.4, 0.06, 1.4], color: C.carved });
 
   // far wall with a carved guardian face: the "turn now" landmark
-  const wallColor = kind === 'jungle' ? C.stoneMoss : C.stone;
-  b.box(W + 3, 6.5, 1.6, { position: [0, 3.2, -(t1 + 0.8)], color: wallColor, jitter: 0.08 });
+  const wallColor = kind === 'jungle' ? 0x9fa882 : C.stoneLight; // kept light so the relief reads even in shadow
+  b.box(W + 3, 6.5, 1.6, { position: [0, 3.2, -(t1 + 0.8)], color: wallColor, jitter: 0.06 });
   b.box(W + 3.6, 0.6, 2.0, { position: [0, 6.6, -(t1 + 0.8)], color: C.stoneDark });
   b.box(W + 3.6, 0.4, 2.0, { position: [0, 0.2, -(t1 + 0.8)], color: C.stoneDark });
   // The runner approaches from +z, so relief details sit in front of the wall face (larger z).
   const fz = -(t1 - 0.25);
-  b.add(unitGeo('cyl', 1, 1, 16), { position: [0, 3.0, fz], rotation: [Math.PI / 2, 0, 0], scale: [1.7, 0.5, 1.7], color: C.carved, jitter: 0.05 });
+  b.add(unitGeo('cyl', 1, 1, 16), { position: [0, 3.0, fz], rotation: [Math.PI / 2, 0, 0], scale: [1.7, 0.5, 1.7], color: 0x6f6653, jitter: 0.05 });
+  b.add(unitGeo('cyl', 1, 1, 16), { position: [0, 3.0, fz - 0.1], rotation: [Math.PI / 2, 0, 0], scale: [2.1, 0.3, 2.1], color: 0x4a4338, jitter: 0.05 }); // dark ring behind the face
   b.box(0.55, 0.45, 0.3, { position: [-0.55, 3.35, fz + 0.2], color: 0x1a1512 });
   b.box(0.55, 0.45, 0.3, { position: [0.55, 3.35, fz + 0.2], color: 0x1a1512 });
   b.box(1.4, 0.35, 0.3, { position: [0, 2.35, fz + 0.2], color: 0x1a1512 });
@@ -328,8 +329,8 @@ function buildCornerTile(env) {
   // glyph bands on the wall above the face
   for (let i = -3; i <= 3; i++) b.box(0.5, 0.5, 0.15, { position: [i * 1.1, 5.4, -t1 + 0.08], color: i % 2 ? C.stoneDark : C.carved });
   // torches flanking the face (visible from far away)
-  addTorch(env, -2.6, 2.4, t1 - 0.4, 0);
-  addTorch(env, 2.6, 2.4, t1 - 0.4, 0);
+  addTorch(env, -2.6, 2.4, t1 - 0.4, 0, 1.6);
+  addTorch(env, 2.6, 2.4, t1 - 0.4, 0, 1.6);
 
   // closed side wall for single turns; T-junctions stay open on both sides
   if (piece.end !== 'tee') {
@@ -593,7 +594,7 @@ function addBrokenColumn(env, x, z, rng, hScale = 1) {
 }
 
 // Wall torch: bracket + flame cone + additive glow quad. `facing` is the sign of the wall normal (0 = flat wall ahead).
-function addTorch(env, x, y, u, facing) {
+function addTorch(env, x, y, u, facing, glowScale = 1) {
   const { b, extras } = env;
   const z = -u;
   b.box(0.25, 0.25, 0.25, { position: [x, y - 0.35, z], color: C.iron });
@@ -605,6 +606,7 @@ function addTorch(env, x, y, u, facing) {
   flame.renderOrder = 5;
   extras.push(flame);
   const glow = new THREE.Mesh(glowGeo, glowMat);
+  glow.scale.setScalar(glowScale);
   glow.position.set(x - facing * 0.5, y + 0.5, z + (facing === 0 ? 0.6 : 0));
   if (facing !== 0) glow.rotation.y = facing > 0 ? -Math.PI / 2 : Math.PI / 2;
   glow.userData.sharedGeo = true;
