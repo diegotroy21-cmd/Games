@@ -35,12 +35,12 @@ function ensureShared() {
   flameMat = createFlameMaterial();
   waterMat = createWaterMaterial({ color: 0x2c7f86, deep: 0x0d3a44, foam: 0xd6f3f5 });
   fallMat = createWaterfallMaterial();
-  glowMat = new THREE.MeshBasicMaterial({ map: radialTexture(), color: 0xff9a3a, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, toneMapped: false, side: THREE.DoubleSide });
+  glowMat = new THREE.MeshBasicMaterial({ map: radialTexture(), color: 0xff9a3a, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, toneMapped: false, side: THREE.DoubleSide });
   abyssMat = new THREE.MeshBasicMaterial({ color: C.abyss });
   mistMat = new THREE.MeshBasicMaterial({ map: radialTexture(), color: 0xcfeaf5, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
   flameGeo = new THREE.ConeGeometry(0.34, 1.15, 7, 3, true);
   flameGeo.translate(0, 0.575, 0); // base at y = 0 so the shader's height wobble scales from the base
-  glowGeo = new THREE.PlaneGeometry(2.4, 2.4);
+  glowGeo = new THREE.PlaneGeometry(1.5, 1.5);
   mistGeo = new THREE.CircleGeometry(1, 10);
 }
 
@@ -112,12 +112,22 @@ export function createEnvironment(scene, renderer, quality) {
   // Distant backdrop: rings of misty mountains and jungle canopy silhouettes plus a far pyramid.
   const backdrop = buildBackdrop();
   scene.add(backdrop);
+  // Valley floor far below everything, so the edge of the side decoration never shows raw sky.
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(700, 700), new THREE.MeshBasicMaterial({ color: 0x3f5d36 }));
+  ground.rotation.x = -Math.PI / 2; ground.position.y = -14; ground.renderOrder = -5;
+  scene.add(ground);
+  // Soft fill from the camera side keeps the runner readable in shadowed corridors (constant light count).
+  const fill = new THREE.DirectionalLight(0xfff1dc, 0.55);
+  scene.add(fill); scene.add(fill.target);
 
   const tmp = new THREE.Vector3();
   return {
     update(dt, ctx) {
       sky.position.copy(ctx.camera.position);
       backdrop.position.set(ctx.playerPos.x, 0, ctx.playerPos.z);
+      ground.position.x = ctx.playerPos.x; ground.position.z = ctx.playerPos.z;
+      fill.position.copy(ctx.camera.position); fill.position.y += 12;
+      fill.target.position.copy(ctx.playerPos); fill.target.updateMatrixWorld();
       sun.position.copy(ctx.playerPos).add(sunOffset);
       // keep the shadow frustum ahead of the runner where the action is
       tmp.copy(ctx.playerPos).addScaledVector(ctx.piece ? ctx.piece.fwd : sunOffset, 14);
@@ -129,7 +139,7 @@ export function createEnvironment(scene, renderer, quality) {
       const size = q === 'high' ? 2048 : 1024;
       if (sun.shadow.mapSize.x !== size) { sun.shadow.mapSize.set(size, size); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } }
     },
-    dispose() { scene.remove(sky, hemi, sun, sun.target, backdrop); sky.geometry.dispose(); skyMat.dispose(); },
+    dispose() { scene.remove(sky, hemi, sun, sun.target, backdrop, ground, fill, fill.target); sky.geometry.dispose(); skyMat.dispose(); ground.geometry.dispose(); ground.material.dispose(); },
   };
 }
 
@@ -142,21 +152,23 @@ function buildBackdrop() {
     const r = 190 + rng() * 60;
     const h = 45 + rng() * 60;
     const w = 40 + rng() * 40;
-    b.cone(w, h, 6, { position: [Math.cos(a) * r, h * 0.5 - 8, Math.sin(a) * r], rotation: [0, rng() * 6, 0], color: rng() < 0.5 ? 0x6f8a92 : 0x7c95a0, jitter: 0.12 });
+    b.cone(w, h, 6, { position: [Math.cos(a) * r, h * 0.5 - 8, Math.sin(a) * r], rotation: [0, rng() * 6, 0], color: rng() < 0.5 ? 0x8fa6ad : 0x9bb1b6, jitter: 0.08 });
   }
   // inner jungle canopy ring
   for (let i = 0; i < 70; i++) {
     const a = (i / 70) * Math.PI * 2 + rng() * 0.1;
     const r = 105 + rng() * 45;
     const h = 12 + rng() * 16;
-    b.cone(6 + rng() * 8, h, 5, { position: [Math.cos(a) * r, h * 0.5 - 4, Math.sin(a) * r], color: rng() < 0.5 ? 0x4a7a55 : 0x5a8a62, jitter: 0.15 });
+    b.cone(6 + rng() * 8, h, 5, { position: [Math.cos(a) * r, h * 0.5 - 4, Math.sin(a) * r], color: rng() < 0.5 ? 0x6f9078 : 0x7c9c83, jitter: 0.12 });
   }
   // far stepped pyramid
   const px = 120, pz = -150;
-  for (let t = 0; t < 6; t++) { const s = 42 - t * 6; b.box(s, 6, s, { position: [px, 3 + t * 6 - 4, pz], color: 0x7d8878, jitter: 0.1 }); }
-  b.box(4, 8, 4, { position: [px, 40, pz], color: 0x8e9888 });
+  for (let t = 0; t < 6; t++) { const s = 42 - t * 6; b.box(s, 6, s, { position: [px, 3 + t * 6 - 4, pz], color: 0x8e9a90, jitter: 0.08 }); }
+  b.box(4, 8, 4, { position: [px, 40, pz], color: 0x9aa59a });
   const geo = b.build();
-  const mat = new THREE.MeshBasicMaterial({ vertexColors: true });
+  // Unfogged: these sit beyond the fog distance, so they are pre-tinted as misty silhouettes that stay
+  // a little darker than the horizon instead of vanishing into it.
+  const mat = new THREE.MeshBasicMaterial({ vertexColors: true, fog: false });
   const mesh = new THREE.Mesh(geo, mat);
   mesh.frustumCulled = false;
   return mesh;
@@ -179,7 +191,8 @@ export function buildPiece(piece, ctx) {
   const kind = piece.kind;
   const floorEnd = piece.end === 'straight' ? piece.length : piece.tileStart;
   const floorStart = piece.contentStart;
-  const gaps = piece.obstacles.filter((o) => o.type === 'gap').map((o) => [o.u - o.depth * 0.5, o.u + o.depth * 0.5]);
+  const gaps = piece.obstacles.filter((o) => o.type === 'gap').map((o) => [o.u - o.depth * 0.5, o.u + o.depth * 0.5])
+    .map(([a, c]) => [Math.max(a, floorStart), Math.min(c, floorEnd)]).filter(([a, c]) => c - a > 0.05);
 
   // Side extents. Sides start at the content start (the previous piece's corner tile owns the region
   // beside the tile). Along a corner, the "edge" elements (walls, rock faces, path lips) run up to the tile
@@ -200,6 +213,11 @@ export function buildPiece(piece, ctx) {
   if (kind !== 'bridge' && !(piece.side.left === 'drop' && piece.side.right === 'drop')) {
     // dark abyss under the path shows through gaps
     b.box(W + 4, 1, piece.length + W, { position: [0, -8, -(piece.length * 0.5)], color: C.abyss });
+  } else {
+    // the river runs on under the bridge so gaps show dark water, not sky
+    const water = new THREE.Mesh(new THREE.PlaneGeometry(W + 4.4, piece.length + W), waterMat);
+    water.rotation.x = -Math.PI / 2; water.position.set(0, -11, -(piece.length * 0.5)); water.renderOrder = 1;
+    extras.push(water);
   }
 
   // ---- corner tile -----------------------------------------------------------------------------
@@ -222,7 +240,7 @@ export function buildPiece(piece, ctx) {
       case 'cliffwall': buildRockFace(env, sign, u0, u1, u1f); break;
       case 'jungle': buildJungleSide(env, sign, u0, u1, u1f); break;
       case 'open': buildOpenSide(env, sign, u0, u1, u1f); break;
-      case 'drop': buildChasmSide(env, sign, u0, u1, u1f); break;
+      case 'drop': buildChasmSide(env, sign, u0, u1, u1f, (piece.sideWidth && piece.sideWidth[sideName]) || 58); break;
     }
   }
 
@@ -329,8 +347,8 @@ function buildCornerTile(env) {
   // glyph bands on the wall above the face
   for (let i = -3; i <= 3; i++) b.box(0.5, 0.5, 0.15, { position: [i * 1.1, 5.4, -t1 + 0.08], color: i % 2 ? C.stoneDark : C.carved });
   // torches flanking the face (visible from far away)
-  addTorch(env, -2.6, 2.4, t1 - 0.4, 0, 1.6);
-  addTorch(env, 2.6, 2.4, t1 - 0.4, 0, 1.6);
+  addTorch(env, -2.6, 2.4, t1 - 0.12, 0, 1.6);
+  addTorch(env, 2.6, 2.4, t1 - 0.12, 0, 1.6);
 
   // closed side wall for single turns; T-junctions stay open on both sides
   if (piece.end !== 'tee') {
@@ -452,9 +470,12 @@ function buildOpenSide(env, sign, u0, u1, u1f = u1) {
   for (let u = u0 + 4; u < u1; u += 9 / density) addTree(env, sign * (HW + 7 + rng() * 6), -(u + rng() * 3), rng, true);
 }
 
-function buildChasmSide(env, sign, u0, u1, u1f = u1) {
+function buildChasmSide(env, sign, u0, u1, u1f = u1, width = 58) {
   const { b, rng, density, extras, piece } = env;
   if (u1 - u0 < 0.5) return;
+  // canyon geometry scales with the free width beside the path: far cliff face at fx, river in between
+  const fx = sign * (HW + Math.max(14, width - 22));
+  const wx0 = HW + 2, wx1 = Math.abs(fx) + 10;
   // path lip and the cliff dropping away (edge)
   {
     const len = u1 - u0, zc = -(u0 + u1) * 0.5;
@@ -466,13 +487,12 @@ function buildChasmSide(env, sign, u0, u1, u1f = u1) {
   if (u1 - u0 < 0.5) return;
   const len = u1 - u0, zc = -(u0 + u1) * 0.5;
   // river far below
-  const water = new THREE.Mesh(new THREE.PlaneGeometry(44, len + 12), waterMat);
+  const water = new THREE.Mesh(new THREE.PlaneGeometry(wx1 - wx0, len + 12), waterMat);
   water.rotation.x = -Math.PI / 2;
-  water.position.set(sign * (HW + 24), -11, zc);
+  water.position.set(sign * (wx0 + wx1) * 0.5, -11, zc);
   water.renderOrder = 1;
   extras.push(water);
   // far cliff with waterfalls
-  const fx = sign * (HW + 36);
   b.box(14, 30, len + 12, { position: [fx + sign * 6, 3, zc], color: C.rockDark, jitter: 0.1 });
   for (let u = u0 - 4; u < u1 + 4; u += 3.5) {
     const bh = 2 + rng() * 5, bw = 2 + rng() * 3;
@@ -518,8 +538,8 @@ function buildRuinsDressing(env, a, c) {
   const { b, rng, density } = env;
   for (let u = a + 3; u < c - 3; u += 9 / density) {
     const sign = rng() < 0.5 ? -1 : 1;
-    if (rng() < 0.5) addBrokenColumn(env, sign * (HW - 0.3), -(u + rng() * 3), rng, 0.6);
-    else b.box(0.6, 0.5, 0.7, { position: [sign * (HW - 0.2), 0.25, -(u + rng() * 3)], rotation: [0, rng(), 0.2 * (rng() - 0.5)], color: C.stoneMoss, jitter: 0.2 });
+    if (rng() < 0.5) addBrokenColumn(env, sign * (HW + 1.0), -(u + rng() * 3), rng, 0.6);
+    else b.box(0.6, 0.5, 0.7, { position: [sign * (HW + 0.9), 0.25, -(u + rng() * 3)], rotation: [0, rng(), 0.2 * (rng() - 0.5)], color: C.stoneMoss, jitter: 0.2 });
   }
 }
 
@@ -612,4 +632,18 @@ function addTorch(env, x, y, u, facing, glowScale = 1) {
   glow.userData.sharedGeo = true;
   glow.renderOrder = 4;
   extras.push(glow);
+}
+
+// Hidden meshes using every shared scenery material so their shaders compile at boot (renderer.compile)
+// instead of stalling the first time a biome appears.
+export function createWarmupGroup() {
+  ensureShared();
+  const g = new THREE.Group();
+  const add = (geo, mat) => { const m = new THREE.Mesh(geo, mat); m.visible = false; g.add(m); return m; };
+  add(flameGeo, flameMat); add(glowGeo, glowMat); add(mistGeo, mistMat);
+  add(new THREE.PlaneGeometry(1, 1), waterMat); add(new THREE.PlaneGeometry(1, 1), fallMat);
+  const b = new MeshBuilder(); b.box(1, 1, 1, { color: C.stone, sway: 0.5 });
+  add(b.build(), worldMat);
+  add(new THREE.BoxGeometry(1, 1, 1), abyssMat);
+  return g;
 }

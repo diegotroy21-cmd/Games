@@ -45,6 +45,7 @@ export class Player {
     this.slowTimer = 0;
     this.shield = false;
     this.boost = false;
+    this.boostFactor = 1;
     this.time = 0;
     this.runTime = 0;
     this.lastFootstep = 0;
@@ -52,7 +53,7 @@ export class Player {
   }
 
   // Swipes shortly before the corner tile count as turns (window grows with speed: ~0.2 s of travel).
-  get turnWindowStart() { return this.piece.tileStart - Math.max(CONFIG.turnEarlyWindow, this.speed * 0.2); }
+  get turnWindowStart() { return this.piece.tileStart - Math.max(CONFIG.turnEarlyWindow, this.speed * 0.35); }
   get inTurnWindow() { return this.piece.end !== 'straight' && this.u >= this.turnWindowStart; }
   get inTile() { return this.piece.end !== 'straight' && this.u >= this.piece.tileStart; }
   get onGround() { return this.y <= 0.0001 && this.state !== 'jump' && this.state !== 'fall'; }
@@ -82,9 +83,9 @@ export class Player {
         return;
       }
       if (this.inTile) {
-        // Wrong way at a corner: the runner sprints off the edge.
+        // Wrong way at a single corner: the closed side is a solid wall, so this is a crash.
         this.deathSide = dir;
-        this._die('fall');
+        this._die('hit');
         return;
       }
     }
@@ -94,7 +95,13 @@ export class Player {
   }
 
   _jump() {
-    if (this.state === 'jump' || this.state === 'fall') { this.bufferedJump = 0.14; return; }
+    if (this.state === 'fall') return;
+    if (this.state === 'jump') {
+      // A press while airborne is a request for the next jump: keep it for the landing when we are already
+      // descending (natural double-tap timing), otherwise only for a short window.
+      this.bufferedJump = this.vy < 0 ? 10 : 0.35;
+      return;
+    }
     this.state = 'jump';
     this.vy = JUMP_V0;
     this.fastFall = false;
@@ -139,7 +146,8 @@ export class Player {
 
     // Speed
     const base = speedAtDistance(this.distance);
-    this.targetSpeed = base * (this.boost ? CONFIG.boostSpeedMul : 1) * (this.slowTimer > 0 ? CONFIG.stumbleSlowdown : 1);
+    const boostMul = this.boost ? 1 + (CONFIG.boostSpeedMul - 1) * clamp(this.boostFactor, 0, 1) : 1;
+    this.targetSpeed = base * boostMul * (this.slowTimer > 0 ? CONFIG.stumbleSlowdown : 1);
     this.speed = damp(this.speed, this.targetSpeed, this.slowTimer > 0 ? 14 : 3.5, dt);
     if (this.slowTimer > 0) this.slowTimer -= dt;
     if (this.stumbleTimer > 0) this.stumbleTimer -= dt;
@@ -153,7 +161,7 @@ export class Player {
     // Lateral tween toward the lane centre
     const targetLat = this.lane * LW;
     const prevLat = this.lateral;
-    this.lateral = damp(this.lateral, targetLat, 22, dt);
+    this.lateral = damp(this.lateral, targetLat, 3 / CONFIG.laneChangeTime, dt); // ~95% of the way in laneChangeTime
     this.lateralVel = (this.lateral - prevLat) / Math.max(dt, 1e-4);
 
     // Vertical
@@ -206,7 +214,7 @@ export class Player {
     }
 
     if (this.alive) this._collide();
-    this.track.ensureAhead(this.piece, this.u, 2);
+    this.track.ensureAhead(this.piece, this.u, 1);
     this.updateWorld();
   }
 
@@ -273,7 +281,10 @@ export class Player {
       this.speed = drift;
     } else {
       this.speed = Math.max(0, this.speed - 60 * dt);
-      if (this.deathType === 'hit' && this.deadTime < 0.25) this.u -= 3.5 * dt; // bounce back off the wall
+      if (this.deathType === 'hit' && this.deadTime < 0.25) {
+        if (this.deathSide) this.lateral -= this.deathSide * 2.5 * dt; // recoil off the closed side wall
+        else this.u -= 3.5 * dt; // bounce back off the wall ahead
+      }
     }
   }
 }

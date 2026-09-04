@@ -52,7 +52,9 @@ if (teleport) {
     let p = g.track.root, n = 0; const chain = [p];
     while (p.kind !== kind && n < 120) { g.track.ensureAhead(p, 0, Infinity); const nx = p.next.straight || p.next.left || p.next.right; if (!nx) break; p = nx; chain.push(p); n++; }
     for (let i = 0; i + 1 < chain.length; i++) g.track.advance(chain[i], chain[i + 1]);
-    g.player.piece = p; g.player.u = p.contentStart + 4; g.player.lane = 0; g.player.lateral = 0; g.player.updateWorld();
+    // land safely: at least 3 m before the first hazard on the piece
+    const first = p.obstacles[0];
+    g.player.piece = p; g.player.u = Math.max(p.contentStart + 0.5, Math.min(p.contentStart + 4, first ? first.u - first.depth * 0.5 - 3 : Infinity)); g.player.lane = 0; g.player.lateral = 0; g.player.updateWorld();
     g._headingAngle = p.angle; g.followCam.reset(p.angle, g._computeAnchor()); g.track.ensureAhead(p, g.player.u, Infinity);
     window.__tp = p;
     return { kind: p.kind, side: p.side, end: p.end, len: p.length, contentStart: p.contentStart, branch: p.branch, prev: p.prev && [p.prev.kind, p.prev.end, p.prev.side], obstacles: p.obstacles.map((o) => o.type + '@' + o.u.toFixed(0)), pieces: g.track.pieces.size };

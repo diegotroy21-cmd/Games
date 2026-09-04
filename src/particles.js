@@ -96,8 +96,10 @@ class Pool {
       this.alpha[i] = fin * (1 - t * t);
       this.size[i] = this.baseSize[i] * (1 + this.grow[i] * t);
     }
+    const hadParticles = this.count > 0 || n > 0;
     this.count = n;
     this.geo.setDrawRange(0, n);
+    if (!hadParticles) return; // nothing changed on the GPU side
     const a = this.geo.attributes;
     a.position.needsUpdate = true; a.aColor.needsUpdate = true; a.aSize.needsUpdate = true; a.aAlpha.needsUpdate = true; a.aRot.needsUpdate = true; a.aShape.needsUpdate = true;
   }

@@ -19,11 +19,11 @@ export const CONFIG = {
 
   // Turning
   turnEarlyWindow: 2.2,  // metres before a corner tile in which a swipe pre-queues the turn
-  turnWallMargin: 1.0,   // distance from the far wall where a missed turn becomes a crash
+  turnWallMargin: 0.6,   // distance from the far wall where a missed turn becomes a crash
   turnHeadingTime: 0.28, // camera / character heading smoothing on turns
 
   // Stumbles: minor obstacles slow you and let the monkeys close in; two within stumbleWindow = caught.
-  stumbleWindow: 5.0,
+  stumbleWindow: 3.5,
   stumbleSlowdown: 0.55,
   stumbleSlowTime: 0.8,
 

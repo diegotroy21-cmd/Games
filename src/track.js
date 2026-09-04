@@ -65,6 +65,7 @@ export class Track {
     this.seed = seed;
     this.rng = mulberry32(seed * 7919 + 13);
     this.pieces = new Set();
+    this.grid = new Map(); // occupancy grid (6 m cells) of live piece footprints, used to avoid self-intersection
     this.root = null;
     this.stats = { generated: 0 };
     const first = this._generatePiece(null, { origin: new THREE.Vector3(0, 0, 0), heading: 0, startDistance: 0, contentStart: 0 }, { safe: true });
@@ -86,14 +87,14 @@ export class Track {
   sampleBehind(piece, u, v, dist, out = {}) {
     let p = piece, uu = u - dist;
     let guard = 0;
-    while (uu < p.contentStart && p.prev && guard++ < 16) {
-      // Enter the previous piece through its corner tile centre (or directly for straight joins).
+    while (uu < 0 && p.prev && guard++ < 16) {
+      // A post-turn piece has its origin at the corner tile centre, so u' < 0 continues in the
+      // previous piece from its tile centre (prev.length - W/2); straight joins continue from prev.length.
       const prev = p.prev;
-      const rem = p.contentStart - uu;
-      uu = (prev.end === 'straight' ? prev.length : prev.length - W * 0.5) - rem;
+      uu = (prev.end === 'straight' ? prev.length : prev.length - W * 0.5) + uu;
       p = prev;
     }
-    uu = Math.max(uu, p.contentStart - W * 0.5);
+    uu = Math.max(uu, 0);
     out.piece = p; out.u = uu; out.v = v;
     out.pos = this.worldPosition(p, uu, v, 0, out.pos || new THREE.Vector3());
     out.fwd = p.fwd;
@@ -103,7 +104,7 @@ export class Track {
   // ---- streaming -------------------------------------------------------------------------------
   // Guarantees CONFIG.aheadDistance metres of track exist beyond (piece,u) along every branch.
   // Generates at most `budget` pieces per call to spread work across frames.
-  ensureAhead(piece, u, budget = 2) {
+  ensureAhead(piece, u, budget = 1) {
     let made = 0;
     const need = CONFIG.aheadDistance;
     const visit = (p, remaining) => {
@@ -150,7 +151,37 @@ export class Track {
   _remove(p) {
     if (!this.pieces.has(p)) return;
     this.pieces.delete(p);
+    this._vacate(p);
     if (this.onPieceRemoved) this.onPieceRemoved(p);
+  }
+
+  // ---- occupancy grid --------------------------------------------------------------------------
+  _cellKeys(origin, fwd, right, u0, u1, v0, v1, out) {
+    const step = 3;
+    for (let u = u0; u <= u1; u += step) {
+      for (let v = v0; v <= v1; v += step) {
+        const x = origin.x + fwd.x * u + right.x * v;
+        const z = origin.z + fwd.z * u + right.z * v;
+        out.push(((Math.floor(x / 6) + 4096) << 13) | (Math.floor(z / 6) + 4096));
+      }
+    }
+    return out;
+  }
+  _occupy(piece) {
+    const u0 = piece.contentStart > 0 ? -W * 0.5 : 0;
+    piece.cells = this._cellKeys(piece.origin, piece.fwd, piece.right, u0, piece.length, -(W * 0.5 + 2), W * 0.5 + 2, []);
+    for (const k of piece.cells) { let set = this.grid.get(k); if (!set) { set = new Set(); this.grid.set(k, set); } set.add(piece.id); }
+  }
+  _vacate(piece) {
+    if (!piece.cells) return;
+    for (const k of piece.cells) { const set = this.grid.get(k); if (set) { set.delete(piece.id); if (!set.size) this.grid.delete(k); } }
+    piece.cells = null;
+  }
+  // True when no live piece occupies the rectangle (u0..u1 along fwd, v0..v1 along right) from origin.
+  _isFree(origin, fwd, right, u0, u1, v0, v1) {
+    const keys = this._cellKeys(origin, fwd, right, u0, u1, v0, v1, []);
+    for (const k of keys) if (this.grid.has(k)) return false;
+    return true;
   }
 
   // ---- generation ------------------------------------------------------------------------------
@@ -184,11 +215,11 @@ export class Track {
       const maxRun = kind === 'bridge' ? 2 : 3;
       if (kindRun >= maxRun || (kindRun >= 2 && rng.chance(0.35))) {
         const nextKinds = {
-          temple: ['ruins', 'jungle', 'jungle', 'cliff'],
-          jungle: ['cliff', 'temple', 'bridge', 'ruins'],
-          cliff: ['bridge', 'jungle', 'ruins', 'temple'],
+          temple: ['ruins', 'jungle', 'jungle', 'cliff', 'bridge'],
+          jungle: ['cliff', 'temple', 'bridge', 'bridge', 'ruins'],
+          cliff: ['bridge', 'bridge', 'jungle', 'ruins', 'temple'],
           bridge: ['jungle', 'cliff', 'ruins'],
-          ruins: ['temple', 'jungle', 'cliff', 'bridge'],
+          ruins: ['temple', 'jungle', 'cliff', 'bridge', 'bridge'],
         }[kind];
         let nk = rng.pick(nextKinds);
         if (nk === 'bridge' && (afterTurn || D < 0.08)) nk = 'jungle';
@@ -197,34 +228,78 @@ export class Track {
     }
 
     // --- length and ending ---
+    const speed0 = speedAtDistance(cursor.startDistance);
     let length;
     if (opts.safe) length = 64;
     else if (kind === 'bridge') length = rng.range(22, 34);
-    else length = lerp(rng.range(34, 58), rng.range(26, 46), D);
-    if (afterTurn) length = Math.max(length, 30);
+    else length = rng.range(34, 58); // pieces keep their length at high difficulty: hazards get denser, not sparser
+    if (afterTurn) length = Math.max(length, 30, 1.5 * speed0); // room to read hazards while the camera swings
+    length = Math.round(length);
 
+    // Turn selection uses the occupancy grid so the track never runs back over live pieces, and caps
+    // consecutive same-direction turns (three lefts within a few pieces is a loop).
+    const fwd = headingForward(heading), right = headingRight(heading);
+    const tileCentre = cursor.origin.clone().addScaledVector(fwd, length - W * 0.5);
+    const straightEnd = cursor.origin.clone().addScaledVector(fwd, length);
+    const freeAhead = (from, h) => this._isFree(from, headingForward(h), headingRight(h), 8, 80, -(W * 0.5 + 2), W * 0.5 + 2);
+    const straightFree = this._isFree(straightEnd, fwd, right, 2, 80, -(W * 0.5 + 2), W * 0.5 + 2);
+    const leftFree = freeAhead(tileCentre, heading + 1), rightFree = freeAhead(tileCentre, heading - 1);
+    const lastTurn = parent ? parent.lastTurn : null;
+    const turnRun = parent ? parent.turnRun : 0;
     let end = 'straight';
     const sinceTee = parent ? (parent.end === 'tee' ? 0 : parent.sinceTee + 1) : 3;
     if (!opts.safe && kind !== 'bridge') {
-      const pTurn = 0.42 + 0.33 * D;
-      if (rng.chance(pTurn)) {
-        if (sinceTee >= 3 && rng.chance(0.3)) end = 'tee';
-        else end = rng.chance(0.5) ? 'left' : 'right';
-        length = Math.round(length);
+      const pTurn = Math.min(0.55, 0.42 + 0.13 * D);
+      const wantTurn = rng.chance(pTurn) || !straightFree;
+      if (wantTurn) {
+        const dirs = [];
+        if (leftFree && !(lastTurn === 'left' && turnRun >= 2)) dirs.push('left');
+        if (rightFree && !(lastTurn === 'right' && turnRun >= 2)) dirs.push('right');
+        if (dirs.length === 2 && sinceTee >= 3 && rng.chance(0.3)) end = 'tee';
+        else if (dirs.length) end = rng.pick(dirs);
+        else if (leftFree) end = 'left';
+        else if (rightFree) end = 'right';
+        else end = 'straight';
       }
+    } else if (!opts.safe && !straightFree) {
+      // a bridge cannot turn: shorten it so the piece after it can
+      length = Math.max(20, Math.round(length * 0.7));
     }
-    length = Math.round(length);
+    const thisTurn = end === 'left' || end === 'right' ? end : null;
 
     const piece = {
       id: nextId++, kind, kindRun, sinceTee, branch: opts.branch || null, safe: !!opts.safe,
       origin: cursor.origin.clone(), heading, angle: headingAngle(heading),
-      fwd: headingForward(heading), right: headingRight(heading),
+      fwd, right,
       startDistance: cursor.startDistance, length, contentStart: cursor.contentStart,
       end, tileStart: end === 'straight' ? Infinity : length - W,
+      lastTurn: thisTurn || (end === 'tee' ? null : lastTurn), turnRun: thisTurn ? (thisTurn === lastTurn ? turnRun + 1 : 1) : (end === 'tee' ? 0 : turnRun),
       obstacles: [], coins: [], powerups: [],
       seed: Math.floor(rng() * 1e9), difficulty: D,
-      side: pickSides(kind, rng), prev: parent, next: {}, visual: null, coinSlots: null,
+      side: pickSides(kind, rng), prev: parent, next: {}, visual: null, coinSlots: null, cells: null,
     };
+
+    // Chasm sides need empty space beside the path for the river and far cliff. The canyon width adapts
+    // to what is free (58 / 40 / 26 m); with less than that, or on the inside of the corner just taken
+    // (the previous corridor is right there), the side becomes a rock face instead.
+    piece.sideWidth = { left: 0, right: 0 };
+    for (const sideName of ['left', 'right']) {
+      if (piece.side[sideName] !== 'drop') continue;
+      if (piece.branch === sideName) { piece.side[sideName] = 'cliffwall'; continue; }
+      const sign = sideName === 'left' ? -1 : 1;
+      const u0 = piece.contentStart > 0 ? piece.contentStart + 6 : 0;
+      let chosen = 0;
+      for (const w of [58, 40, 26]) {
+        const v0 = sign < 0 ? -(W * 0.5 + w) : W * 0.5 + 3, v1 = sign < 0 ? -(W * 0.5 + 3) : W * 0.5 + w;
+        if (this._isFree(piece.origin, fwd, right, u0, length, v0, v1)) { chosen = w; break; }
+      }
+      if (chosen) piece.sideWidth[sideName] = chosen; else piece.side[sideName] = 'cliffwall';
+    }
+    if (kind === 'bridge' && (piece.side.left !== 'drop' || piece.side.right !== 'drop')) {
+      piece.kind = (piece.side.left === 'drop' || piece.side.right === 'drop') ? 'cliff' : 'jungle';
+      if (piece.kind === 'jungle') piece.side = { left: 'jungle', right: 'jungle' };
+    }
+    this._occupy(piece);
 
     piece.obstacleTail = Infinity;
     if (!opts.safe) this._placeObstacles(piece, rng);
@@ -259,13 +334,15 @@ export class Track {
       const react = lerp(1.0, 0.45, D); // seconds of clear running between hazard events
       if (rng.chance(density)) {
         const tpl = pickTemplate(piece.kind, D, rng, last);
-        const depth = tpl.place(piece, u, rng, D, speed);
+        const depth = tpl.place(piece, u, rng, D, speed, uMax);
         last = tpl.name;
         u += depth + speed * react + rng.range(0, speed * 0.45);
       } else {
         u += speed * 0.5;
       }
     }
+    // Safety net: nothing may extend past uMax (into the corner window, the tile or the next piece).
+    piece.obstacles = piece.obstacles.filter((o) => o.u + o.depth * 0.5 <= uMax);
     piece.obstacles.sort((a, b) => a.u - b.u);
     const lastObs = piece.obstacles[piece.obstacles.length - 1];
     piece.obstacleTail = lastObs ? piece.length - (lastObs.u + lastObs.depth * 0.5) : Infinity;
@@ -317,13 +394,32 @@ export class Track {
         const lane = o.lanes[Math.floor(rng() * o.lanes.length)];
         for (let i = -2; i <= 2; i++) addCoin(o.u + i * 1.2, lane * LW, 0.45);
       } else if (o.action === 'dodge' && rng.chance(0.6)) {
-        const freeLanes = [-1, 0, 1].filter((l) => !o.lanes.includes(l));
+        // lanes free of every obstacle at this u (rubble comes as two blocks; combos add a bar/root)
+        const same = obs.filter((x) => Math.abs(x.u - o.u) < 0.05);
+        const freeLanes = [-1, 0, 1].filter((l) => !same.some((x) => x.lanes.includes(l)));
         if (freeLanes.length) {
           const lane = rng.pick(freeLanes);
           for (let i = -2; i <= 2; i++) addCoin(o.u + i * 1.4, lane * LW);
+        } else {
+          // every lane is blocked at this u by a jump/slide element: guide along the slide lane, low
+          const bar = same.find((x) => x.action === 'slide');
+          if (bar) for (let i = -2; i <= 2; i++) addCoin(o.u + i * 1.2, bar.lanes[0] * LW, 0.45);
         }
       }
     }
+    // Never leave coins inside tall obstacles, under lintels at chest height, or beyond the usable stretch.
+    piece.coins = piece.coins.filter((c) => {
+      if (c.u < start - 0.5 || c.u > stop + 0.5) return false;
+      for (const o of obs) {
+        if (Math.abs(c.u - o.u) > o.depth * 0.5 + 0.3) continue;
+        const inLane = c.v > o.vMin - 0.2 && c.v < o.vMax + 0.2;
+        if (!inLane) continue;
+        if (o.action === 'dodge') return false;
+        if (o.action === 'slide' && c.y > o.height - 0.3) return false;
+        if (o.action === 'jump' && c.y < o.height + 0.2 && o.type !== 'gap') return false;
+      }
+      return true;
+    });
     piece.coins.sort((a, b) => a.u - b.u);
   }
 
@@ -412,9 +508,22 @@ const TEMPLATES = [
   { name: 'pillar+bar', minD: 0.5, kinds: ['temple', 'ruins', 'jungle'], w: 2.5,
     place: (p, u, rng) => { const l = randomLane(rng); const t = p.kind === 'jungle' ? 'trunk' : 'pillar'; const bar = p.kind === 'jungle' ? 'branch' : 'lintel'; p.obstacles.push(makeObstacle(t, u, [l])); for (const g of groups(lanesAll.filter((x) => x !== l))) p.obstacles.push(makeObstacle(bar, u, g)); return OBSTACLE_TYPES.pillar.depth; } },
   { name: 'zigzag', minD: 0.3, kinds: ['temple', 'ruins', 'cliff', 'jungle'], w: 2.5,
-    place: (p, u, rng, D, speed) => { const t = p.kind === 'jungle' ? 'trunk' : 'pillar'; const n = D > 0.6 ? 3 : 2; const step = speed * lerp(0.6, 0.45, D); let lane = randomLane(rng); for (let i = 0; i < n; i++) { p.obstacles.push(makeObstacle(t, u + i * step, [lane])); lane = clamp(lane + (lane === 0 ? rng.sign() : -Math.sign(lane)), -1, 1); } return (n - 1) * step + OBSTACLE_TYPES.pillar.depth; } },
+    place: (p, u, rng, D, speed, uMax = Infinity) => {
+      const t = p.kind === 'jungle' ? 'trunk' : 'pillar';
+      const step = speed * lerp(0.6, 0.45, D);
+      // only as many pillars as fit before uMax (at least one)
+      const n = Math.max(1, Math.min(D > 0.6 ? 3 : 2, 1 + Math.floor((uMax - u - OBSTACLE_TYPES.pillar.depth) / step)));
+      let lane = randomLane(rng);
+      for (let i = 0; i < n; i++) { p.obstacles.push(makeObstacle(t, u + i * step, [lane])); lane = clamp(lane + (lane === 0 ? rng.sign() : -Math.sign(lane)), -1, 1); }
+      return (n - 1) * step + OBSTACLE_TYPES.pillar.depth;
+    } },
   { name: 'fire+gap', minD: 0.55, kinds: ['temple', 'ruins'], w: 1.5,
-    place: (p, u, rng, D, speed) => { p.obstacles.push(makeObstacle('fire', u, lanesAll)); const step = speed * 0.9; p.obstacles.push(makeObstacle('gap', u + step, lanesAll, { depth: 3.6 })); return step + 3.6; } },
+    place: (p, u, rng, D, speed, uMax = Infinity) => {
+      p.obstacles.push(makeObstacle('fire', u, lanesAll));
+      const step = speed * 0.9;
+      if (u + step + 1.8 <= uMax) { p.obstacles.push(makeObstacle('gap', u + step, lanesAll, { depth: 3.6 })); return step + 3.6; }
+      return OBSTACLE_TYPES.fire.depth;
+    } },
 ];
 
 function pickTemplate(kind, D, rng, lastName) {

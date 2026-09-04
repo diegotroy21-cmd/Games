@@ -7,7 +7,7 @@ import { Player } from './player.js';
 import { FollowCamera } from './camera.js';
 import { createCharacter } from './character.js';
 import { createMonkeys } from './monkeys.js';
-import { createEnvironment, buildPiece, disposePiece } from './scenery.js';
+import { createEnvironment, buildPiece, disposePiece, createWarmupGroup } from './scenery.js';
 import { buildObstacle, smashObstacle } from './obstacles.js';
 import { createCollectibles } from './collectibles.js';
 import { createParticles } from './particles.js';
@@ -16,6 +16,8 @@ import { createHUD } from './hud.js';
 import { createEffects } from './effects.js';
 import { loadSave, writeSave, UPGRADES, upgradeCost } from './save.js';
 import { tickMaterials } from './fx-materials.js';
+
+const POWER_KEYS = ['shield', 'magnet', 'boost'];
 
 export class Game {
   constructor({ renderer, scene, camera, input, quality }) {
@@ -55,10 +57,23 @@ export class Game {
     this.player.reset(this.track.root);
     this._anchor = new THREE.Vector3();
     this._headingAngle = 0;
+    // Per-frame context objects are allocated once and mutated (no garbage in the hot loop).
+    this._ctxCollect = {}; this._ctxCam = {}; this._ctxChar = {}; this._ctxEnv = {}; this._ctxAudio = {};
+    this._ctxMonkeys = { sample: (dist, out) => this.track.sampleBehind(this.player.piece, this.player.u, this.player.lateral, dist, out) };
     this.followCam.reset(0, this.player.updateWorld());
 
     this._bindEvents();
     this._bindInput();
+    this._warmupShaders();
+  }
+
+  // Compile every shader once at boot so the first waterfall, flame or pickup never stalls a frame.
+  _warmupShaders() {
+    const group = new THREE.Group();
+    group.add(createWarmupGroup(), this.collectibles.warmupGroup());
+    this.scene.add(group);
+    try { this.renderer.compile(this.scene, this.camera); } catch { /* compile is best-effort */ }
+    this.scene.remove(group);
   }
 
   _freshRun() { return { score: 0, distance: 0, coins: 0, multiplier: 1, best: false, deathType: null, time: 0 }; }
@@ -95,7 +110,6 @@ export class Game {
       this.audio.play('stumble'); this.followCam.addShake(0.45); this.effects.flash(0xff8844, 0.25);
       this.character.setState('stumble'); this.particles.emit('dust', p.worldPos, { count: 14 });
       this.threat = 1;
-      this.hud.toast('Stumbled! They\'re right behind you!');
     });
     ev.on('smash', (o) => { this.audio.play('smash'); this.followCam.addShake(0.35); if (o.visual) { smashObstacle(o.visual); this.particles.emit('smash', p.worldPos, { count: 20 }); } });
     ev.on('shieldbreak', (o) => {
@@ -272,9 +286,10 @@ export class Game {
     if (running || dying) {
       const p = this.player;
       // power-up timers
-      for (const k of Object.keys(this.power)) if (this.power[k] > 0) { this.power[k] -= dt; if (this.power[k] <= 0) { this.power[k] = 0; this.events.emit('powerend', k); if (running) this.hud.toast(''); } }
+      for (const k of POWER_KEYS) if (this.power[k] > 0) { this.power[k] -= dt; if (this.power[k] <= 0) { this.power[k] = 0; this.events.emit('powerend', k); if (running) this.hud.toast(''); } }
       p.shield = this.power.shield > 0;
       p.boost = this.power.boost > 0;
+      p.boostFactor = Math.min(1, this.power.boost); // speed eases back to normal over the last second
       p.update(dt);
 
       if (running) {
@@ -288,11 +303,11 @@ export class Game {
         if (p.runTime < 5) this.threat = Math.max(this.threat, 1 - p.runTime / 5);
 
         // collectibles
-        const res = this.collectibles.update(dt, {
-          playerPos: p.worldPos, playerY: p.y, hitboxHeight: p.hitboxHeight,
-          magnet: this.power.magnet > 0 || this.power.boost > 0, magnetRadius: CONFIG.magnetRadius + (this.power.boost > 0 ? 4 : 0),
-          fwd: p.piece.fwd, speed: p.speed, time: this.time,
-        });
+        const cc = this._ctxCollect;
+        cc.playerPos = p.worldPos; cc.playerY = p.y; cc.hitboxHeight = p.hitboxHeight;
+        cc.magnet = this.power.magnet > 0 || this.power.boost > 0; cc.magnetRadius = CONFIG.magnetRadius + (this.power.boost > 0 ? 4 : 0);
+        cc.fwd = p.piece.fwd; cc.speed = p.speed; cc.time = this.time;
+        const res = this.collectibles.update(dt, cc);
         if (res.coins > 0) {
           const value = 1;
           this.run.coins += res.coins * value;
@@ -311,21 +326,23 @@ export class Game {
     this._headingAngle = damp(this._headingAngle, this._headingAngle + wrapAngleDelta(this._headingAngle, targetAngle), 1 / CONFIG.turnHeadingTime * 1.4, dt);
     const anchor = this._computeAnchor();
     if (this.state === 'menu') this.followCam.updateMenu(dt, p.worldPos, this.time);
-    else this.followCam.update(dt, {
-      anchor, playerPos: p.worldPos, targetAngle, speed01: p.speed01, boost: this.power.boost > 0,
-      dead: !p.alive, deathType: p.deathType, playerY: p.y,
-    });
+    else {
+      const c = this._ctxCam;
+      c.anchor = anchor; c.playerPos = p.worldPos; c.targetAngle = targetAngle; c.speed01 = p.speed01; c.boost = this.power.boost > 0;
+      c.dead = !p.alive; c.deathType = p.deathType; c.playerY = p.y;
+      this.followCam.update(dt, c);
+    }
 
     // Character placement + animation
     const g = this.character.group;
     g.position.copy(p.worldPos);
     g.rotation.y = this._headingAngle + (p.alive ? -p.lateralVel * 0.045 : 0);
     const idle = this.state === 'menu';
-    this.character.update(dt, {
-      state: idle ? 'idle' : p.state, speed: idle ? 0 : p.speed, speed01: p.speed01, y: p.y, vy: p.vy, lateralVel: p.lateralVel,
-      turnLean: p.turnLean, stumble01: p.stumbleTimer / CONFIG.stumbleWindow, shield: p.shield, boost: p.boost,
-      magnet: this.power.magnet > 0, dead: !p.alive, deathType: p.deathType, deadTime: p.deadTime, time: this.time,
-    });
+    const ch = this._ctxChar;
+    ch.state = idle ? 'idle' : p.state; ch.speed = idle ? 0 : p.speed; ch.speed01 = p.speed01; ch.y = p.y; ch.vy = p.vy; ch.lateralVel = p.lateralVel;
+    ch.turnLean = p.turnLean; ch.stumble01 = p.stumbleTimer / CONFIG.stumbleWindow; ch.shield = p.shield; ch.boost = p.boost;
+    ch.magnet = this.power.magnet > 0; ch.dead = !p.alive; ch.deathType = p.deathType; ch.deadTime = p.deadTime; ch.time = this.time;
+    this.character.update(dt, ch);
     if (p.alive && p.state === 'run' && p.onGround) {
       // footsteps paced by speed
       const cadence = 0.62 / Math.max(0.3, p.speed / CONFIG.startSpeed);
@@ -347,18 +364,21 @@ export class Game {
     }
 
     // Monkeys
-    this.monkeys.update(dt, {
-      sample: (dist, out) => this.track.sampleBehind(p.piece, p.u, p.lateral, dist, out),
-      playerPos: p.worldPos, playerAngle: this._headingAngle, threat: this.threat, dead: !p.alive, deathType: p.deathType,
-      speed01: p.speed01, time: this.time, running: running || dying, deadTime: p.deadTime,
-    });
+    const mk = this._ctxMonkeys;
+    mk.playerPos = p.worldPos; mk.playerAngle = this._headingAngle; mk.threat = this.threat; mk.dead = !p.alive; mk.deathType = p.deathType;
+    mk.speed01 = p.speed01; mk.time = this.time; mk.running = running || dying; mk.deadTime = p.deadTime;
+    this.monkeys.update(dt, mk);
 
     // Environment, particles, effects, audio, HUD
     tickMaterials(this.time, 1 + p.speed01 * 0.5);
-    this.env.update(dt, { playerPos: p.worldPos, camera: this.camera, time: this.time, speed01: p.speed01, piece: p.piece });
+    const ev = this._ctxEnv;
+    ev.playerPos = p.worldPos; ev.camera = this.camera; ev.time = this.time; ev.speed01 = p.speed01; ev.piece = p.piece;
+    this.env.update(dt, ev);
     this.particles.update(dt, this.camera);
     this.effects.setSpeed(p.alive ? clamp(p.speed01 * 0.8 + (this.power.boost > 0 ? 0.5 : 0), 0, 1) : 0);
-    this.audio.update(dt, { speed01: p.speed01, threat: this.threat, running, boost: this.power.boost > 0, piece: p.piece, playerPos: p.worldPos });
+    const au = this._ctxAudio;
+    au.speed01 = p.speed01; au.threat = this.threat; au.running = running; au.boost = this.power.boost > 0; au.piece = p.piece; au.playerPos = p.worldPos;
+    this.audio.update(dt, au);
     this.hud.update(dt);
   }
 

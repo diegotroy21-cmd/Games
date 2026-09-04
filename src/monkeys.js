@@ -18,7 +18,7 @@ import { TAU, clamp, damp, dampAngle, lerp, smoothstep, wrapAngle, mulberry32 } 
 
 const W = CONFIG.trackWidth;
 const MAX_V = W * 0.5 - 0.6;               // widest lateral offset that keeps a body over the floor
-const DIST_NEAR = 2.5, DIST_FAR = 14;     // metres behind the runner at threat 1 / threat 0
+const DIST_NEAR = 3.6, DIST_FAR = 14;     // metres behind the runner at threat 1 / threat 0
 
 // Threat -> distance. Eased so the pack stays in frame for a while after a stumble and at the
 // start of a run, then drops out of view quickly as the threat fades.

@@ -133,7 +133,7 @@ export function createAudio(settings) {
   let crackleTimer = 0, birdTimer = 2;
 
   // ---- music: pattern sequencer ----------------------------------------------------------------
-  const music = { on: false, step: 0, nextTime: 0, bpm: 118, intensity: 0, fade: null };
+  const music = { on: false, step: 0, nextTime: 0, bpm: 118, intensity: 0, fade: null, fading: false };
   const SCALE = [0, 3, 5, 7, 10, 12, 15, 17]; // minor pentatonic
   const ROOT = 146.83; // D3
   const midiF = (semi) => ROOT * Math.pow(2, semi / 12);
@@ -195,7 +195,7 @@ export function createAudio(settings) {
     },
     startMusic() {
       if (!ensure()) return;
-      music.on = true; music.step = 0; music.nextTime = now() + 0.1; music.intensity = 0.2;
+      music.on = true; music.step = 0; music.nextTime = now() + 0.1; music.intensity = 0.2; music.fading = false;
       if (music.fade) { clearTimeout(music.fade); music.fade = null; }
       musicBus.gain.cancelScheduledValues(now());
       musicBus.gain.setValueAtTime(musicOn ? 0.55 : 0, now());
@@ -205,7 +205,8 @@ export function createAudio(settings) {
       musicBus.gain.cancelScheduledValues(now());
       musicBus.gain.setValueAtTime(musicBus.gain.value, now());
       musicBus.gain.linearRampToValueAtTime(0.0001, now() + fadeSec);
-      music.fade = setTimeout(() => { music.on = false; }, fadeSec * 1000);
+      music.fading = true;
+      music.fade = setTimeout(() => { music.on = false; music.fading = false; }, fadeSec * 1000);
     },
     setPaused(p) {
       paused = p;
@@ -217,7 +218,7 @@ export function createAudio(settings) {
       if (!ctx) return;
       sfxBus.gain.value = sound ? 1 : 0; ambBus.gain.value = sound ? 1 : 0;
       musicBus.gain.cancelScheduledValues(now());
-      musicBus.gain.setValueAtTime(musicEnabled && music.on ? 0.55 : 0, now());
+      musicBus.gain.setValueAtTime(musicEnabled && music.on && !music.fading ? 0.55 : 0, now());
     },
     setBiome(kind) { biome = kind; },
     setIntensity(x) { music.intensity = clamp(x, 0, 1); },

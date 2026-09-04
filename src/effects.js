@@ -41,14 +41,16 @@ const VignetteShader = {
 
 export function createEffects(renderer, scene, camera, quality = 'high') {
   const size = renderer.getSize(new THREE.Vector2());
-  let composer = null, bloom = null, vignette = null;
+  let composer = null, bloom = null, vignette = null, output = null, renderPass = null;
   let speed = 0, targetSpeed = 0;
   const flash = new THREE.Vector4(1, 1, 1, 0);
   let time = 0;
 
   function build() {
     composer = new EffectComposer(renderer);
-    composer.addPass(new RenderPass(scene, camera));
+    renderPass = new RenderPass(scene, camera);
+    composer.addPass(renderPass);
+    bloom = null;
     if (quality !== 'low') {
       bloom = new UnrealBloomPass(new THREE.Vector2(size.x, size.y), 0.42, 0.55, 0.82);
       composer.addPass(bloom);
@@ -56,13 +58,21 @@ export function createEffects(renderer, scene, camera, quality = 'high') {
     vignette = new ShaderPass(VignetteShader);
     vignette.uniforms.uAspect.value = size.x / size.y;
     composer.addPass(vignette);
-    composer.addPass(new OutputPass());
+    output = new OutputPass();
+    composer.addPass(output);
   }
   build();
 
   return {
     get quality() { return quality; },
-    setQuality(q) { quality = q; composer.dispose(); build(); this.resize(); },
+    setQuality(q) {
+      quality = q;
+      // passes own render targets and materials; dispose them before the composer
+      for (const pass of [renderPass, bloom, vignette, output]) if (pass && pass.dispose) pass.dispose();
+      composer.dispose();
+      build();
+      this.resize();
+    },
     resize() {
       renderer.getSize(size);
       composer.setSize(size.x, size.y);

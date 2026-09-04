@@ -11,7 +11,7 @@ export const UPGRADES = {
 
 export function upgradeCost(key, level) {
   const u = UPGRADES[key];
-  return Math.round(u.base * Math.pow(2.1, level));
+  return Math.round(u.base * Math.pow(1.65, level));
 }
 
 const DEFAULTS = () => ({
