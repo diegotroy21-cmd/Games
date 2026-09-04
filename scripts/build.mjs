@@ -45,3 +45,13 @@ const target = outDir ? resolve(outDir, 'index.html') : resolve(root, 'dist/inde
 mkdirSync(dirname(target), { recursive: true });
 writeFileSync(target, single);
 console.log(`${outDir ? target : 'dist/index.html'} written (${(single.length / 1024).toFixed(0)} KB)`);
+
+// --artifact: the same page without the document wrapper (title + style first, then body content),
+// for hosts that supply their own <html>/<head>/<body> skeleton.
+if (argv.includes('--artifact')) {
+  const body = single.slice(single.indexOf('<body>') + 6, single.lastIndexOf('</body>'));
+  const artifact = `<title>Relic Rush</title>\n<style>\n${css}\n</style>\n${body}`;
+  const out = outDir ? resolve(outDir, 'artifact.html') : resolve(root, 'dist/artifact.html');
+  writeFileSync(out, artifact);
+  console.log(`${out} written (${(artifact.length / 1024).toFixed(0)} KB)`);
+}
