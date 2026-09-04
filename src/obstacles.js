@@ -246,14 +246,14 @@ function buildRoot(b, rng, o, w, cx, z, Q) {
   for (let i = 0; i < arcs; i++) {
     const half = rr(rng, 0.5, 0.95), xc = rr(rng, x0 + half * 0.6, x1 - half * 0.6);
     const xa = Math.max(x0, xc - half), xb = Math.min(x1, xc + half);
-    const h = rr(rng, 0.3, 0.42), r = rr(rng, 0.09, 0.14), zc = z + rr(rng, -0.22, 0.22), dz = rr(rng, -0.25, 0.25), ph = rr(rng, 0, TAU);
+    const h = rr(rng, 0.32, 0.45), r = rr(rng, 0.11, 0.16), zc = z + rr(rng, -0.22, 0.22), dz = rr(rng, -0.25, 0.25), ph = rr(rng, 0, TAU);
     const path = [], radii = [];
     for (let k = 0; k < pts; k++) {
       const t = k / (pts - 1), s = Math.sin(t * PI);
       path.push([xa + (xb - xa) * t, -0.14 + (h + 0.14) * Math.pow(s, 0.8) + (k > 0 && k < pts - 1 ? rr(rng, -0.03, 0.03) : 0), zc + dz * (t - 0.5) * 2 + 0.11 * Math.sin(t * TAU + ph)]);
       radii.push(r * (0.72 + 0.5 * s) * rr(rng, 0.88, 1.12));
     }
-    const color = pick(rng, [C.bark, C.bark, C.barkLight, C.barkDark]);
+    const color = pick(rng, [C.bark, C.barkLight, C.barkLight, 0x8f6a42]);
     b.tube(path, radii, segs, { color, jitter: 0.28, chunk: 'arc' + i });
     // knots and rootlets diving back into the ground
     const kIdx = 1 + Math.floor(rng() * (pts - 2)), kp = path[kIdx];
@@ -319,9 +319,9 @@ function buildLog(b, rng, o, w, cx, z, Q) {
 
 // Broken plank pile (bridge variant of the log): splintered boards, snapped ends sticking up, rope.
 function buildPlanks(b, rng, o, w, cx, z, Q) {
-  const n = Q ? 10 : 7;
+  const n = Q ? 13 : 9;
   for (let i = 0; i < n; i++) {
-    const t = i / (n - 1), len = rr(rng, 1.3, 2.4), y = 0.045 + t * 0.55;
+    const t = i / (n - 1), len = rr(rng, 1.3, 2.4), y = 0.045 + t * 0.62;
     b.box(len, 0.07, rr(rng, 0.22, 0.3), {
       position: [cx + rr(rng, -w / 2 + 0.7, w / 2 - 0.7), y, z + rr(rng, -0.35, 0.35)],
       rotation: [rr(rng, -0.12, 0.12), rr(rng, -0.45, 0.45), rr(rng, -0.2, 0.2) * (1 + t)],
@@ -345,10 +345,10 @@ function buildBoulder(b, rng, o, w, cx, z, Q) {
   for (let li = 0; li < lanes; li++) {
     const x = cx - w / 2 + LW * (li + 0.5) + rr(rng, -0.15, 0.15), zz = z + rr(rng, -0.12, 0.12);
     const kind = pick(rng, ROCKS), rot = [rr(rng, 0, PI), rr(rng, 0, PI), rr(rng, 0, PI)];
-    const sx = rr(rng, 0.78, 0.92), sy = rr(rng, 0.5, 0.58), sz = rr(rng, 0.62, 0.78);
-    b.add(unitGeo(kind), { position: [x, 0.36, zz], rotation: rot, scale: [sx, sy, sz], color: C.rock, jitter: 0.22, chunk: 'rock' + li });
+    const sx = rr(rng, 0.88, 1.0), sy = rr(rng, 0.55, 0.62), sz = rr(rng, 0.7, 0.85);
+    b.add(unitGeo(kind), { position: [x, 0.38, zz], rotation: rot, scale: [sx, sy, sz], color: C.rock, jitter: 0.22, chunk: 'rock' + li });
     // moss cap: the same shape squashed and lifted so it reads as a green crown
-    b.add(unitGeo(kind), { position: [x, 0.36 + sy * 0.42, zz], rotation: rot, scale: [sx * 0.86, sy * 0.4, sz * 0.86], color: C.moss, jitter: 0.25, chunk: 'rock' + li });
+    b.add(unitGeo(kind), { position: [x, 0.38 + sy * 0.42, zz], rotation: rot, scale: [sx * 0.9, sy * 0.42, sz * 0.9], color: C.moss, jitter: 0.25, chunk: 'rock' + li });
     // satellites
     const sats = Q ? 3 : 2;
     for (let i = 0; i < sats; i++) {
@@ -375,11 +375,11 @@ function buildSpikes(b, rng, o, w, cx, z, Q) {
     for (let i = 0; i < perLane; i++) {
       for (let ri = 0; ri < rows.length; ri++) {
         const x = cx - w / 2 + LW * li + LW * (i + 0.5) / perLane + (ri ? 0.12 : -0.12), zz = z + rows[ri];
-        const h = rr(rng, 0.42, 0.55), lean = [rr(rng, -0.08, 0.08), 0, rr(rng, -0.08, 0.08)];
+        const h = rr(rng, 0.5, 0.6), lean = [rr(rng, -0.08, 0.08), 0, rr(rng, -0.08, 0.08)];
         const ck = 'spike' + li + i + ri;
-        b.cyl(1, 6, { position: [x, 0.21, zz], scale: [0.1, 0.06, 0.1], color: C.rust, jitter: 0.15, chunk: ck });
-        b.cone(0.1, h, spikeSeg, { position: [x, 0.21 + h / 2, zz], rotation: lean, color: C.iron, jitter: 0.12, chunk: ck });
-        b.cone(0.045, 0.22, spikeSeg, { position: [x + lean[2] * -h * 0.55, 0.21 + h - 0.06, zz + lean[0] * h * 0.55], rotation: lean, color: C.steel, chunk: ck });
+        b.cyl(1, 6, { position: [x, 0.21, zz], scale: [0.12, 0.06, 0.12], color: C.rust, jitter: 0.15, chunk: ck });
+        b.cone(0.115, h, spikeSeg, { position: [x, 0.21 + h / 2, zz], rotation: lean, color: C.iron, jitter: 0.12, chunk: ck });
+        b.cone(0.05, 0.24, spikeSeg, { position: [x + lean[2] * -h * 0.55, 0.21 + h - 0.06, zz + lean[0] * h * 0.55], rotation: lean, color: C.steel, chunk: ck });
       }
     }
   }
@@ -389,17 +389,18 @@ function buildSpikes(b, rng, o, w, cx, z, Q) {
 // Stone-lined fire trench: curb blocks, a sooty pit, embers, a wall of flames and warm halos.
 function buildFire(b, gb, fb, rng, o, w, cx, z, Q) {
   const L = w + 0.4, D = o.depth;
-  // curbs as rows of blocks
+  // curbs as rows of blocks (each block its own smash chunk)
+  let nb = 0;
   for (const side of [-1, 1]) {
     const zz = z + side * (D / 2 - 0.16);
     let x = cx - L / 2;
     while (x < cx + L / 2 - 0.05) {
       const bw = Math.min(rr(rng, 0.7, 1.15), cx + L / 2 - x);
-      b.box(bw - 0.04, rr(rng, 0.24, 0.3), 0.32, { position: [x + bw / 2, 0.13, zz + rr(rng, -0.015, 0.015)], color: pick(rng, STONES), jitter: 0.16, chunk: 'curb' });
+      b.box(bw - 0.04, rr(rng, 0.24, 0.3), 0.32, { position: [x + bw / 2, 0.13, zz + rr(rng, -0.015, 0.015)], color: pick(rng, STONES), jitter: 0.16, chunk: 'curb' + nb++ });
       x += bw;
     }
   }
-  for (const side of [-1, 1]) b.box(0.32, 0.27, D - 0.32, { position: [cx + side * (L / 2 - 0.16), 0.135, z], color: C.stoneDark, jitter: 0.16, chunk: 'curb' });
+  for (const side of [-1, 1]) b.box(0.32, 0.27, D - 0.32, { position: [cx + side * (L / 2 - 0.16), 0.135, z], color: C.stoneDark, jitter: 0.16, chunk: 'curb' + nb++ });
   // pit floor and charred rubble
   b.box(L - 0.5, 0.08, D - 0.5, { position: [cx, -0.01, z], color: C.soot, chunk: 'pit' });
   for (let i = 0; i < (Q ? Math.round(w * 1.5) : Math.round(w * 0.7)); i++) b.add(unitGeo('ico', 0), { position: [cx + rr(rng, -L / 2 + 0.5, L / 2 - 0.5), 0.06, z + rr(rng, -D / 2 + 0.4, D / 2 - 0.4)], rotation: [rr(rng, 0, PI), rr(rng, 0, PI), 0], scale: rr(rng, 0.08, 0.16), color: C.coal, jitter: 0.3, chunk: 'pit' });
@@ -507,9 +508,9 @@ function buildLintel(b, rng, o, w, cx, z, Q) {
     for (let i = 0; i < 2; i++) b.box(0.02, 0.5, 0.9, { position: [x + (i ? 0.36 : -0.36), 0.7, z], color: C.groove, chunk: ck });
     if (Q) mossPatch(b, rng, x + rr(rng, -0.2, 0.2), 0.2, z + 0.5, 0.18, { chunk: ck });
   }
-  // beam
-  b.box(half * 2, 0.55, 1.0, { position: [0, beamY + 0.275, z], color: C.stoneWarm, jitter: 0.12, chunk: 'beam' });
-  b.box(half * 2 + 0.3, 0.12, 1.12, { position: [0, beamY + 0.61, z], color: C.stoneLight, jitter: 0.1, chunk: 'beam' });
+  // beam (three segments so it breaks apart when smashed) and cornice
+  for (let i = 0; i < 3; i++) b.box(half * 2 / 3, 0.55, 1.0, { position: [(i - 1) * half * 2 / 3, beamY + 0.275, z], color: C.stoneWarm, jitter: 0.12, chunk: 'beam' + i });
+  b.box(half * 2 + 0.3, 0.12, 1.12, { position: [0, beamY + 0.61, z], color: C.stoneLight, jitter: 0.1, chunk: 'cornice' });
   for (const face of [1, -1]) {
     const fz = z + face * 0.5;
     b.box(half * 2 - 0.4, 0.05, 0.03, { position: [0, beamY + 0.46, fz], color: C.groove, chunk: 'beam' });
@@ -524,14 +525,15 @@ function buildLintel(b, rng, o, w, cx, z, Q) {
   }
   // wall of blocks above the beam (top row ruined)
   const rowH = 0.42, rows = 4, wallTop = beamY + 0.67;
+  let nb = 0;
   for (let r = 0; r < rows; r++) {
     const y = wallTop + rowH * (r + 0.5);
     let x = -half + (r % 2 ? 0.35 : 0);
-    if (r % 2) b.box(0.7, rowH - 0.03, 0.9, { position: [-half + 0.35 - 0.35, y, z], color: pick(rng, STONES), jitter: 0.16, chunk: 'wall' + r });
+    if (r % 2) b.box(0.7, rowH - 0.03, 0.9, { position: [-half, y, z], color: pick(rng, STONES), jitter: 0.16, chunk: 'wall' + nb++ });
     while (x < half - 0.05) {
       const bw = Math.min(rr(rng, 0.8, 1.25), half - x);
       const missing = r === rows - 1 && rng() < 0.35;
-      if (!missing) b.box(bw - 0.04, rowH - 0.03 - (r === rows - 1 ? rr(rng, 0, 0.18) : 0), 0.9, { position: [x + bw / 2, y - (r === rows - 1 ? 0.05 : 0), z + rr(rng, -0.025, 0.025)], color: pick(rng, STONES), jitter: 0.16, chunk: 'wall' + r });
+      if (!missing) b.box(bw - 0.04, rowH - 0.03 - (r === rows - 1 ? rr(rng, 0, 0.18) : 0), 0.9, { position: [x + bw / 2, y - (r === rows - 1 ? 0.05 : 0), z + rr(rng, -0.025, 0.025)], color: pick(rng, STONES), jitter: 0.16, chunk: 'wall' + nb++ });
       x += bw;
     }
   }

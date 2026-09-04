@@ -325,11 +325,19 @@ export function createHUD(game) {
     setDanger(false); hideHint();
     if (tutorial.active) { tutorial.active = false; if (tutorial.shownCount >= 3) finishTutorial(); }
   });
+  ev.on('gameover', () => { el.hud.classList.remove('dying'); });   // showGameOver() is called by the game right after
   ev.on('coin', () => replay(el.coinsWrap, 'pop'));
+  ev.on('power', (type) => { const p = powers[type]; if (p && !p.shown) { p.shown = true; p.root.hidden = false; p.lastSecs = -1; } });
+  ev.on('powerend', (type) => { const p = powers[type]; if (p && p.shown) { p.shown = false; p.low = false; p.root.hidden = true; p.root.classList.remove('low'); } });
   ev.on('stumble', () => replay(el.warn, 'show'));
+  ev.on('pause', () => { hideHint(); });                                // showPause() is called by the game
+  ev.on('resume', () => { if (apiHint) showHint(apiHint, ''); });
+  ev.on('menu', () => { el.hud.classList.remove('dying'); });         // showMenu('menu') is called by the game
   ev.on('settings', refreshSettings);
   ev.on('quality', refreshSettings);
   ev.on('upgrade', (key) => { renderShop(key); refreshMenu(); });
+  // Escape closes the settings overlay (the game only handles Escape while running / paused / in the shop).
+  window.addEventListener('keydown', (e) => { if (e.code === 'Escape' && !el.settings.hidden) closeSettings(); });
 
   // ---- init ------------------------------------------------------------------------------------
   buildDust();
