@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1a1238">
+<title>ATA Pilot Study</title>
+<meta name="description" content="Structured study for student and rated pilots: written-test prep, checkride oral drills and systems flashcards.">
+<link rel="preload" as="image" href="./assets/cockpit-poster.jpg">
+<style>
+  :root {
+    --bg: #100b26;
+    --ink: #f4f0ff;
+    --muted: #c3b8e6;
+    --accent: #b366ff;
+    --accent-2: #7b3fe4;
+    --card: rgba(24, 16, 56, .55);
+    --line: rgba(255, 255, 255, .14);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- Scroll-scrubbed video background ---------- */
+  .bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    background: #1a1238 url("./assets/cockpit-poster.jpg") center / cover no-repeat;
+  }
+  .bg video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity .6s ease;
+  }
+  .bg.ready video { opacity: 1; }
+  .bg::after {
+    /* Darken toward the bottom so copy stays readable while the jet keeps its colour. */
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(180deg, rgba(16, 11, 38, .25) 0%, rgba(16, 11, 38, .45) 60%, rgba(16, 11, 38, .85) 100%);
+    pointer-events: none;
+  }
+
+  /* ---------- Layout ---------- */
+  .page { position: relative; z-index: 1; }
+  .wrap { width: min(1100px, 92vw); margin: 0 auto; }
+  section { min-height: 100vh; display: grid; align-items: center; padding: 12vh 0; }
+
+  header.nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 2;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px max(4vw, 20px);
+    backdrop-filter: blur(6px);
+    background: linear-gradient(180deg, rgba(16, 11, 38, .55), rgba(16, 11, 38, 0));
+  }
+  .brand { font-weight: 800; letter-spacing: .12em; text-transform: uppercase; font-size: 14px; }
+  .brand span { color: var(--accent); }
+  nav a { color: var(--muted); text-decoration: none; margin-left: 22px; font-size: 14px; }
+  nav a:hover { color: var(--ink); }
+  @media (max-width: 640px) { nav a:not(:last-child) { display: none; } }
+
+  h1 {
+    font-size: clamp(2.4rem, 6vw, 4.6rem);
+    line-height: 1.05; margin: 0 0 18px; font-weight: 800; letter-spacing: -.02em;
+    max-width: 14ch;
+  }
+  h2 { font-size: clamp(1.8rem, 4vw, 2.8rem); line-height: 1.1; margin: 0 0 14px; letter-spacing: -.01em; }
+  .eyebrow { color: var(--accent); text-transform: uppercase; letter-spacing: .18em; font-size: 12px; font-weight: 700; margin-bottom: 14px; }
+  .lead { color: var(--muted); font-size: clamp(1.05rem, 1.6vw, 1.25rem); max-width: 52ch; }
+
+  .btn {
+    display: inline-block; padding: 14px 26px; border-radius: 999px; font-weight: 700;
+    text-decoration: none; color: #fff;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    box-shadow: 0 10px 30px rgba(123, 63, 228, .45);
+    transition: transform .15s ease;
+  }
+  .btn:hover { transform: translateY(-2px); }
+  .btn.ghost { background: transparent; border: 1px solid var(--line); box-shadow: none; margin-left: 10px; }
+  .actions { margin-top: 28px; }
+
+  .grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin-top: 32px; }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 24px;
+    backdrop-filter: blur(10px);
+  }
+  .card h3 { margin: 0 0 8px; font-size: 1.1rem; }
+  .card p { margin: 0; color: var(--muted); font-size: .95rem; }
+  .num { color: var(--accent); font-weight: 800; font-size: 2rem; line-height: 1; margin-bottom: 10px; }
+
+  .steps { counter-reset: step; display: grid; gap: 14px; margin-top: 28px; }
+  .step { display: grid; grid-template-columns: 48px 1fr; gap: 16px; align-items: start; }
+  .step::before {
+    counter-increment: step; content: counter(step);
+    width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center;
+    background: rgba(179, 102, 255, .18); border: 1px solid var(--line); font-weight: 800; color: var(--accent);
+  }
+  .step h3 { margin: 4px 0 4px; }
+  .step p { margin: 0; color: var(--muted); }
+
+  .cta { text-align: center; }
+  .cta .lead { margin: 0 auto; }
+  form.signup { display: flex; gap: 10px; justify-content: center; margin-top: 26px; flex-wrap: wrap; }
+  form.signup input {
+    padding: 14px 18px; border-radius: 999px; border: 1px solid var(--line);
+    background: rgba(255, 255, 255, .08); color: var(--ink); min-width: 260px; font-size: 1rem;
+  }
+  form.signup input::placeholder { color: var(--muted); }
+  form.signup button { border: 0; cursor: pointer; font-size: 1rem; }
+
+  footer { position: relative; z-index: 1; color: var(--muted); font-size: 13px; text-align: center; padding: 30px 0 40px; }
+
+  .scroll-hint {
+    position: absolute; left: 50%; bottom: 28px; transform: translateX(-50%);
+    color: var(--muted); font-size: 12px; letter-spacing: .2em; text-transform: uppercase;
+    animation: bob 1.8s ease-in-out infinite;
+  }
+  @keyframes bob { 50% { transform: translate(-50%, 6px); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .scroll-hint { animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- The video is never "played"; scroll position drives currentTime (see script below). -->
+<div class="bg" id="bg">
+  <video id="bgvid" muted playsinline preload="auto" poster="./assets/cockpit-poster.jpg" aria-hidden="true">
+    <source src="./assets/cockpit-scrub.mp4" type="video/mp4">
+    <source src="./assets/cockpit-scrub.webm" type="video/webm">
+  </video>
+</div>
+
+<header class="nav">
+  <div class="brand">ATA <span>Pilot Study</span></div>
+  <nav>
+    <a href="#what">What you get</a>
+    <a href="#how">How it works</a>
+    <a href="#ratings">Ratings</a>
+    <a href="#join" class="btn" style="padding:10px 18px">Start studying</a>
+  </nav>
+</header>
+
+<main class="page">
+
+  <section id="top" style="position:relative">
+    <div class="wrap">
+      <div class="eyebrow">Built for student &amp; rated pilots</div>
+      <h1>Study like you fly: with a plan.</h1>
+      <p class="lead">
+        Written-test question banks, checkride oral drills and systems flashcards, organised
+        by rating and tracked so you always know what to hit next.
+      </p>
+      <div class="actions">
+        <a class="btn" href="#join">Start studying free</a>
+        <a class="btn ghost" href="#how">See how it works</a>
+      </div>
+    </div>
+    <div class="scroll-hint">Scroll</div>
+  </section>
+
+  <section id="what">
+    <div class="wrap">
+      <div class="eyebrow">What you get</div>
+      <h2>Everything between ground school and the checkride.</h2>
+      <div class="grid">
+        <div class="card"><div class="num">1,900+</div><h3>Written-test questions</h3><p>Private, Instrument and Commercial banks with worked explanations, not just answer keys.</p></div>
+        <div class="card"><div class="num">ACS</div><h3>Oral exam drills</h3><p>Questions mapped to every Airman Certification Standards task so nothing on the oral surprises you.</p></div>
+        <div class="card"><div class="num">Spaced</div><h3>Flashcards that schedule themselves</h3><p>Regs, weather, aerodynamics and aircraft systems on a spaced-repetition timer.</p></div>
+        <div class="card"><div class="num">Live</div><h3>Weather &amp; chart practice</h3><p>Decode METARs, TAFs and sectional charts from real-world examples, scored instantly.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="how">
+    <div class="wrap">
+      <div class="eyebrow">How it works</div>
+      <h2>Three steps to a confident checkride.</h2>
+      <div class="steps">
+        <div class="step"><div><h3>Pick your rating and test date</h3><p>Your study plan is built backwards from the day you sit the exam.</p></div></div>
+        <div class="step"><div><h3>Do a 20-minute session a day</h3><p>Mixed questions, cards and a chart problem. Weak areas get more reps automatically.</p></div></div>
+        <div class="step"><div><h3>Take a full mock and fly</h3><p>Timed practice exams and a simulated oral so exam day feels like another session.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="ratings">
+    <div class="wrap">
+      <div class="eyebrow">Ratings covered</div>
+      <h2>From first solo to the right seat.</h2>
+      <div class="grid">
+        <div class="card"><h3>Private Pilot</h3><p>PAR written, pre-solo quizzes and the private oral.</p></div>
+        <div class="card"><h3>Instrument</h3><p>IRA written, approach-plate reading and holding-pattern drills.</p></div>
+        <div class="card"><h3>Commercial</h3><p>CAX written, performance and complex-aircraft systems.</p></div>
+        <div class="card"><h3>CFI &amp; ATP</h3><p>FOI, FIA and ATM banks plus lesson-plan builders.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="join" class="cta">
+    <div class="wrap">
+      <div class="eyebrow">Ready when you are</div>
+      <h2>Start your study plan today.</h2>
+      <p class="lead">Free to try. No card needed. Cancel any time before your checkride, or after you pass.</p>
+      <form class="signup" onsubmit="event.preventDefault(); this.querySelector('button').textContent = 'You\'re on the list';">
+        <input type="email" required placeholder="you@example.com" aria-label="Email address">
+        <button class="btn" type="submit">Create free account</button>
+      </form>
+    </div>
+  </section>
+
+</main>
+
+<footer>© <span id="year"></span> ATA Pilot Study. Not affiliated with the FAA. Always verify against current regulations.</footer>
+
+<script>
+(function () {
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+  var bg = document.getElementById('bg');
+  var video = document.getElementById('bgvid');
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Scroll progress 0..1 across the whole document.
+  function progress() {
+    var doc = document.documentElement;
+    var max = doc.scrollHeight - window.innerHeight;
+    return max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+  }
+
+  var target = 0, current = 0, raf = null;
+
+  // Ease toward the target time so wheel steps do not look like frame jumps.
+  function tick() {
+    current += (target - current) * 0.18;
+    if (Math.abs(target - current) < 0.002) current = target;
+    if (video.duration) {
+      // Keep a hair under duration: seeking to the exact end can show a black frame in some browsers.
+      var t = Math.min(current, video.duration - 0.03);
+      if (Math.abs(video.currentTime - t) > 0.004) video.currentTime = t;
+    }
+    raf = (current !== target) ? requestAnimationFrame(tick) : null;
+  }
+
+  function onScroll() {
+    if (!video.duration) return;
+    target = progress() * video.duration;
+    if (raf === null) raf = requestAnimationFrame(tick);
+  }
+
+  function armed() {
+    bg.classList.add('ready');
+    video.pause();
+    onScroll();
+  }
+
+  if (reduceMotion) {
+    // Respect reduced-motion: keep the still poster only.
+    video.remove();
+    return;
+  }
+
+  video.addEventListener('loadedmetadata', function () {
+    // Force the first frame to decode so the poster-to-video swap is seamless.
+    video.currentTime = 0.001;
+  }, { once: true });
+  video.addEventListener('seeked', armed, { once: true });
+  video.addEventListener('canplaythrough', armed, { once: true });
+  video.load();
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', onScroll);
+})();
+</script>
+</body>
+</html>
