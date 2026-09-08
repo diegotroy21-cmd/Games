@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "node scripts/dev.mjs",
+    "pilot": "node scripts/pilot.mjs",
     "build": "node scripts/build.mjs",
     "test": "node scripts/build.mjs && node tests/smoke.mjs",
     "start": "node scripts/build.mjs && node scripts/dev.mjs"

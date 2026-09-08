@@ -282,7 +282,25 @@
   }, { once: true });
   video.addEventListener('seeked', armed, { once: true });
   video.addEventListener('canplaythrough', armed, { once: true });
+  video.addEventListener('loadeddata', armed, { once: true });
+  video.addEventListener('error', fallbackLoop, { once: true });
   video.load();
+
+  // Safety net: if the browser will not let us seek (some file:// setups, or a server
+  // without byte-range support) fall back to a plain looping background video.
+  var fallback = false;
+  function fallbackLoop() {
+    if (fallback) return; fallback = true;
+    window.removeEventListener('scroll', onScroll);
+    bg.classList.add('ready');
+    video.loop = true;
+    var p = video.play(); if (p && p.catch) p.catch(function () {});
+  }
+  setTimeout(function () { if (!bg.classList.contains('ready')) fallbackLoop(); }, 2500);
+  setTimeout(function () {
+    // Scrolled but the frame never moved: seeking is not working here, so loop instead.
+    if (!fallback && video.duration && progress() > 0.05 && video.currentTime < 0.01) fallbackLoop();
+  }, 6000);
 
   window.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', onScroll);
