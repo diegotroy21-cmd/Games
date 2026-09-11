@@ -1,11 +1,11 @@
 // Static server for the pilot-study landing page (byte-range support so the video can be scrubbed).
-// npm run pilot  ->  http://localhost:8080
+// npm run pilot  ->  http://localhost:8080   (SITE=pharma npm run pilot for the pharma page)
 import http from 'node:http';
 import fs from 'node:fs';
 import { resolve, join, extname, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'pilot-study');
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', process.env.SITE || 'pilot-study');
 const port = Number(process.env.PORT || 8080);
 const types = { '.html': 'text/html; charset=utf-8', '.mp4': 'video/mp4', '.webm': 'video/webm', '.jpg': 'image/jpeg', '.css': 'text/css', '.js': 'text/javascript' };
 
