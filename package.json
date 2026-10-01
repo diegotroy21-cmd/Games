@@ -10,7 +10,8 @@
     "pharma": "SITE=pharma node scripts/pilot.mjs",
     "build": "node scripts/build.mjs",
     "test": "node scripts/build.mjs && node tests/smoke.mjs",
-    "start": "node scripts/build.mjs && node scripts/dev.mjs"
+    "start": "node scripts/build.mjs && node scripts/dev.mjs",
+    "standalone": "node scripts/standalone.mjs pilot-study && node scripts/standalone.mjs pharma"
   },
   "license": "MIT",
   "dependencies": {

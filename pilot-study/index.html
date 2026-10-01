@@ -3,138 +3,129 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#1a1238">
+<meta name="theme-color" content="#100b26">
+<meta name="color-scheme" content="dark">
 <title>ATA Pilot Study</title>
-<meta name="description" content="Structured study for student and rated pilots: written-test prep, checkride oral drills and systems flashcards.">
+<meta name="description" content="Structured study for student and rated pilots: FAA knowledge-test prep, ACS oral drills and systems flashcards.">
 <link rel="preload" as="image" href="./assets/cockpit-poster.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
+  /* Single dark theme by design: the page sits over a fixed purple-sky video, so it does not swap with the OS theme. */
   :root {
     --bg: #100b26;
     --ink: #f4f0ff;
     --muted: #c3b8e6;
     --accent: #b366ff;
     --accent-2: #7b3fe4;
-    --card: rgba(24, 16, 56, .55);
+    --panel: rgba(16, 11, 38, .62);
     --line: rgba(255, 255, 255, .14);
+    --display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+    --body: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    /* Type scale, 1.25 ratio */
+    --t-xs: .75rem; --t-sm: .875rem; --t-md: 1rem; --t-lg: 1.25rem; --t-xl: 1.6rem; --t-2xl: clamp(1.9rem, 3.6vw, 2.6rem); --t-3xl: clamp(2.5rem, 6vw, 4.4rem);
   }
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
-  body {
-    margin: 0;
-    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    color: var(--ink);
-    background: var(--bg);
-    -webkit-font-smoothing: antialiased;
-  }
+  body { margin: 0; font: var(--t-md)/1.6 var(--body); color: var(--ink); background: var(--bg); -webkit-font-smoothing: antialiased; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
 
   /* ---------- Scroll-scrubbed video background ---------- */
-  .bg {
-    position: fixed;
-    inset: 0;
-    z-index: 0;
-    overflow: hidden;
-    background: #1a1238 url("./assets/cockpit-poster.jpg") center / cover no-repeat;
-  }
-  .bg video {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    opacity: 0;
-    transition: opacity .6s ease;
-  }
+  .bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; background: #1a1238 url("./assets/cockpit-poster.jpg") center / cover no-repeat; }
+  .bg video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .6s ease; }
   .bg.ready video { opacity: 1; }
   .bg::after {
-    /* Darken toward the bottom so copy stays readable while the jet keeps its colour. */
-    content: "";
-    position: absolute;
-    inset: 0;
-    background:
-      linear-gradient(180deg, rgba(16, 11, 38, .25) 0%, rgba(16, 11, 38, .45) 60%, rgba(16, 11, 38, .85) 100%);
-    pointer-events: none;
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(90deg, rgba(16, 11, 38, .72) 0%, rgba(16, 11, 38, .38) 55%, rgba(16, 11, 38, .15) 100%),
+                linear-gradient(180deg, rgba(16, 11, 38, 0) 55%, rgba(16, 11, 38, .7) 100%);
   }
 
-  /* ---------- Layout ---------- */
+  /* ---------- Frame ---------- */
   .page { position: relative; z-index: 1; }
-  .wrap { width: min(1100px, 92vw); margin: 0 auto; }
-  section { min-height: 100vh; display: grid; align-items: center; padding: 12vh 0; }
+  .wrap { width: min(1120px, 92vw); margin: 0 auto; }
+  .band { padding: 16vh 0 4vh; }
+  .band.hero { padding: 24vh 0 18vh; }
 
   header.nav {
     position: fixed; top: 0; left: 0; right: 0; z-index: 2;
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 18px max(4vw, 20px);
-    backdrop-filter: blur(6px);
-    background: linear-gradient(180deg, rgba(16, 11, 38, .55), rgba(16, 11, 38, 0));
+    display: flex; align-items: center; justify-content: space-between; gap: 24px;
+    padding: 14px max(4vw, 20px);
+    background: rgba(16, 11, 38, .55); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line);
   }
-  .brand { font-weight: 800; letter-spacing: .12em; text-transform: uppercase; font-size: 14px; }
-  .brand span { color: var(--accent); }
-  nav a { color: var(--muted); text-decoration: none; margin-left: 22px; font-size: 14px; }
-  nav a:hover { color: var(--ink); }
-  @media (max-width: 640px) { nav a:not(:last-child) { display: none; } }
+  .brand { font-family: var(--display); font-stretch: 125%; font-weight: 800; font-size: var(--t-md); letter-spacing: .02em; color: var(--ink); text-decoration: none; }
+  .brand span { color: var(--accent); font-weight: 500; }
+  nav { display: flex; align-items: center; gap: 24px; }
+  nav a:not(.btn) { color: var(--muted); text-decoration: none; font-size: var(--t-sm); }
+  nav a:not(.btn):hover { color: var(--ink); }
+  @media (max-width: 720px) { nav a:not(.btn) { display: none; } }
 
-  h1 {
-    font-size: clamp(2.4rem, 6vw, 4.6rem);
-    line-height: 1.05; margin: 0 0 18px; font-weight: 800; letter-spacing: -.02em;
-    max-width: 14ch;
-  }
-  h2 { font-size: clamp(1.8rem, 4vw, 2.8rem); line-height: 1.1; margin: 0 0 14px; letter-spacing: -.01em; }
-  .eyebrow { color: var(--accent); text-transform: uppercase; letter-spacing: .18em; font-size: 12px; font-weight: 700; margin-bottom: 14px; }
-  .lead { color: var(--muted); font-size: clamp(1.05rem, 1.6vw, 1.25rem); max-width: 52ch; }
+  /* ---------- Type ---------- */
+  .label { font-family: var(--mono); font-size: var(--t-xs); letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin: 0 0 16px; }
+  h1, h2, h3 { font-family: var(--display); margin: 0; text-wrap: balance; }
+  h1 { font-size: var(--t-3xl); font-stretch: 125%; font-weight: 800; line-height: 1; letter-spacing: -.01em; max-width: 13ch; margin-bottom: 24px; }
+  h2 { font-size: var(--t-2xl); font-stretch: 118%; font-weight: 700; line-height: 1.08; max-width: 20ch; margin-bottom: 16px; }
+  h3 { font-size: var(--t-lg); font-stretch: 110%; font-weight: 700; line-height: 1.25; margin-bottom: 6px; }
+  .lead { color: var(--muted); font-size: var(--t-lg); line-height: 1.55; max-width: 52ch; margin: 0; }
+  p { margin: 0; }
 
   .btn {
-    display: inline-block; padding: 14px 26px; border-radius: 999px; font-weight: 700;
-    text-decoration: none; color: #fff;
-    background: linear-gradient(135deg, var(--accent), var(--accent-2));
-    box-shadow: 0 10px 30px rgba(123, 63, 228, .45);
-    transition: transform .15s ease;
+    display: inline-flex; align-items: center; padding: 12px 22px; border-radius: 4px; border: 1px solid transparent;
+    font: 600 var(--t-sm)/1 var(--body); letter-spacing: .02em; text-decoration: none; cursor: pointer;
+    color: #fff; background: var(--accent-2); transition: background .15s ease;
   }
-  .btn:hover { transform: translateY(-2px); }
-  .btn.ghost { background: transparent; border: 1px solid var(--line); box-shadow: none; margin-left: 10px; }
-  .actions { margin-top: 28px; }
+  .btn:hover { background: color-mix(in srgb, var(--accent-2) 82%, #fff); }
+  .btn.ghost { background: transparent; border-color: var(--line); color: var(--ink); }
+  .btn.ghost:hover { border-color: var(--accent); }
+  .btn.small { padding: 9px 16px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px; }
 
-  .grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin-top: 32px; }
-  .card {
-    background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 24px;
-    backdrop-filter: blur(10px);
-  }
-  .card h3 { margin: 0 0 8px; font-size: 1.1rem; }
-  .card p { margin: 0; color: var(--muted); font-size: .95rem; }
-  .num { color: var(--accent); font-weight: 800; font-size: 2rem; line-height: 1; margin-bottom: 10px; }
+  /* ---------- What you get: rule-separated list + one lifted METAR exercise ---------- */
+  .split { display: grid; gap: 48px; grid-template-columns: minmax(0, 1fr); margin-top: 40px; }
+  @media (min-width: 900px) { .split { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-items: start; } }
+  .features { list-style: none; margin: 0; padding: 0; display: grid; }
+  .features li { padding: 20px 0; border-top: 1px solid var(--line); display: grid; gap: 4px; }
+  .features li:last-child { border-bottom: 1px solid var(--line); }
+  .features p { color: var(--muted); max-width: 52ch; }
 
-  .steps { counter-reset: step; display: grid; gap: 14px; margin-top: 28px; }
-  .step { display: grid; grid-template-columns: 48px 1fr; gap: 16px; align-items: start; }
-  .step::before {
-    counter-increment: step; content: counter(step);
-    width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center;
-    background: rgba(179, 102, 255, .18); border: 1px solid var(--line); font-weight: 800; color: var(--accent);
-  }
-  .step h3 { margin: 4px 0 4px; }
-  .step p { margin: 0; color: var(--muted); }
+  .metar { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 24px; backdrop-filter: blur(10px); }
+  .metar .label { margin-bottom: 12px; }
+  .metar code { display: block; font: 500 var(--t-md)/1.6 var(--mono); color: var(--ink); word-spacing: .3em; overflow-wrap: anywhere; }
+  .metar p { color: var(--muted); font-size: var(--t-sm); margin-top: 12px; }
+  .metar details { margin-top: 20px; border-top: 1px solid var(--line); padding-top: 16px; }
+  .metar summary { cursor: pointer; font-weight: 600; font-size: var(--t-sm); color: var(--accent); }
+  .metar dl { display: grid; grid-template-columns: auto 1fr; gap: 8px 18px; margin: 16px 0 0; font-size: var(--t-sm); }
+  .metar dt { font-family: var(--mono); color: var(--ink); }
+  .metar dd { margin: 0; color: var(--muted); }
 
-  .cta { text-align: center; }
-  .cta .lead { margin: 0 auto; }
-  form.signup { display: flex; gap: 10px; justify-content: center; margin-top: 26px; flex-wrap: wrap; }
-  form.signup input {
-    padding: 14px 18px; border-radius: 999px; border: 1px solid var(--line);
-    background: rgba(255, 255, 255, .08); color: var(--ink); min-width: 260px; font-size: 1rem;
-  }
+  /* ---------- How it works: a true sequence, so it is numbered ---------- */
+  .steps { list-style: none; margin: 40px 0 0; padding: 0; display: grid; gap: 32px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); counter-reset: step; }
+  .steps li { counter-increment: step; border-top: 2px solid var(--accent); padding-top: 16px; display: grid; gap: 6px; }
+  .steps li::before { content: "Step " counter(step); font-family: var(--mono); font-size: var(--t-xs); letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+  .steps p { color: var(--muted); }
+
+  /* ---------- Ratings table ---------- */
+  .table-wrap { margin-top: 32px; overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; backdrop-filter: blur(10px); }
+  table { width: 100%; border-collapse: collapse; min-width: 620px; }
+  th, td { text-align: left; padding: 14px 20px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font: 500 var(--t-xs)/1.4 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  tbody tr:last-child td { border-bottom: 0; }
+  td:first-child { font-weight: 600; }
+  td.code { font-family: var(--mono); color: var(--accent); }
+  td.num { font-variant-numeric: tabular-nums; font-family: var(--mono); }
+  td:last-child { color: var(--muted); }
+  .note { margin-top: 14px; color: var(--muted); font-size: var(--t-sm); }
+
+  /* ---------- Sign-up ---------- */
+  .band.join { padding-bottom: 14vh; }
+  form.signup { display: flex; gap: 10px; margin-top: 28px; flex-wrap: wrap; }
+  form.signup input { padding: 12px 16px; border-radius: 4px; border: 1px solid var(--line); background: rgba(255, 255, 255, .06); color: var(--ink); min-width: min(320px, 100%); font: inherit; }
   form.signup input::placeholder { color: var(--muted); }
-  form.signup button { border: 0; cursor: pointer; font-size: 1rem; }
 
-  footer { position: relative; z-index: 1; color: var(--muted); font-size: 13px; text-align: center; padding: 30px 0 40px; }
+  footer { position: relative; z-index: 1; color: var(--muted); font-size: var(--t-xs); padding: 24px max(4vw, 20px) 40px; border-top: 1px solid var(--line); font-family: var(--mono); }
 
-  .scroll-hint {
-    position: absolute; left: 50%; bottom: 28px; transform: translateX(-50%);
-    color: var(--muted); font-size: 12px; letter-spacing: .2em; text-transform: uppercase;
-    animation: bob 1.8s ease-in-out infinite;
-  }
-  @keyframes bob { 50% { transform: translate(-50%, 6px); } }
-
-  @media (prefers-reduced-motion: reduce) {
-    html { scroll-behavior: auto; }
-    .scroll-hint { animation: none; }
-  }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .bg video { transition: none; } }
 </style>
 </head>
 <body>
@@ -148,76 +139,99 @@
 </div>
 
 <header class="nav">
-  <div class="brand">ATA <span>Pilot Study</span></div>
+  <a class="brand" href="#top">ATA <span>Pilot Study</span></a>
   <nav>
     <a href="#what">What you get</a>
     <a href="#how">How it works</a>
     <a href="#ratings">Ratings</a>
-    <a href="#join" class="btn" style="padding:10px 18px">Start studying</a>
+    <a href="#join" class="btn small">Start studying</a>
   </nav>
 </header>
 
 <main class="page">
 
-  <section id="top" style="position:relative">
+  <section class="band hero" id="top">
     <div class="wrap">
-      <div class="eyebrow">Built for student &amp; rated pilots</div>
+      <p class="label">FAA knowledge tests · ACS orals · Part 61 &amp; 141</p>
       <h1>Study like you fly: with a plan.</h1>
-      <p class="lead">
-        Written-test question banks, checkride oral drills and systems flashcards, organised
-        by rating and tracked so you always know what to hit next.
-      </p>
+      <p class="lead">Written-test question banks, checkride oral drills and systems flashcards, organised by rating and tracked so you always know what to hit next.</p>
       <div class="actions">
         <a class="btn" href="#join">Start studying free</a>
         <a class="btn ghost" href="#how">See how it works</a>
       </div>
     </div>
-    <div class="scroll-hint">Scroll</div>
   </section>
 
-  <section id="what">
+  <section class="band" id="what">
     <div class="wrap">
-      <div class="eyebrow">What you get</div>
+      <p class="label">For student and rated pilots</p>
       <h2>Everything between ground school and the checkride.</h2>
-      <div class="grid">
-        <div class="card"><div class="num">1,900+</div><h3>Written-test questions</h3><p>Private, Instrument and Commercial banks with worked explanations, not just answer keys.</p></div>
-        <div class="card"><div class="num">ACS</div><h3>Oral exam drills</h3><p>Questions mapped to every Airman Certification Standards task so nothing on the oral surprises you.</p></div>
-        <div class="card"><div class="num">Spaced</div><h3>Flashcards that schedule themselves</h3><p>Regs, weather, aerodynamics and aircraft systems on a spaced-repetition timer.</p></div>
-        <div class="card"><div class="num">Live</div><h3>Weather &amp; chart practice</h3><p>Decode METARs, TAFs and sectional charts from real-world examples, scored instantly.</p></div>
+      <div class="split">
+        <ul class="features">
+          <li><h3>Written-test question banks</h3><p>More than 1,900 questions across Private, Instrument and Commercial, each with a worked explanation instead of a bare answer key.</p></li>
+          <li><h3>Oral exam drills</h3><p>Questions mapped to every Airman Certification Standards task, so nothing on the oral surprises you.</p></li>
+          <li><h3>Flashcards that schedule themselves</h3><p>Regulations, weather, aerodynamics and aircraft systems on a spaced-repetition timer.</p></li>
+          <li><h3>Weather and chart practice</h3><p>Decode real METARs, TAFs and sectional charts, scored the moment you answer.</p></li>
+        </ul>
+        <aside class="metar" aria-labelledby="metar-title">
+          <p class="label" id="metar-title">Try one · METAR decode</p>
+          <code>KSFO 081756Z 29014G22KT 10SM FEW008 SCT180 18/12 A2996</code>
+          <p>Read the wind, visibility, cloud bases and altimeter setting, then check yourself.</p>
+          <details>
+            <summary>Show the decode</summary>
+            <dl>
+              <dt>KSFO</dt><dd>San Francisco International</dd>
+              <dt>081756Z</dt><dd>8th of the month, 17:56 UTC</dd>
+              <dt>29014G22KT</dt><dd>Wind from 290° at 14 knots, gusting 22</dd>
+              <dt>10SM</dt><dd>Visibility 10 statute miles</dd>
+              <dt>FEW008</dt><dd>Few clouds at 800 ft AGL</dd>
+              <dt>SCT180</dt><dd>Scattered clouds at 18,000 ft AGL</dd>
+              <dt>18/12</dt><dd>Temperature 18 °C, dew point 12 °C</dd>
+              <dt>A2996</dt><dd>Altimeter 29.96 inHg</dd>
+            </dl>
+          </details>
+        </aside>
       </div>
     </div>
   </section>
 
-  <section id="how">
+  <section class="band" id="how">
     <div class="wrap">
-      <div class="eyebrow">How it works</div>
+      <p class="label">About 20 minutes a day</p>
       <h2>Three steps to a confident checkride.</h2>
-      <div class="steps">
-        <div class="step"><div><h3>Pick your rating and test date</h3><p>Your study plan is built backwards from the day you sit the exam.</p></div></div>
-        <div class="step"><div><h3>Do a 20-minute session a day</h3><p>Mixed questions, cards and a chart problem. Weak areas get more reps automatically.</p></div></div>
-        <div class="step"><div><h3>Take a full mock and fly</h3><p>Timed practice exams and a simulated oral so exam day feels like another session.</p></div></div>
-      </div>
+      <ol class="steps">
+        <li><h3>Pick your rating and test date</h3><p>Your study plan is built backwards from the day you sit the exam.</p></li>
+        <li><h3>Do one short session a day</h3><p>Mixed questions, cards and a chart problem. Weak areas get more repetitions automatically.</p></li>
+        <li><h3>Take a full mock, then fly</h3><p>Timed practice tests and a simulated oral, so exam day feels like another session.</p></li>
+      </ol>
     </div>
   </section>
 
-  <section id="ratings">
+  <section class="band" id="ratings">
     <div class="wrap">
-      <div class="eyebrow">Ratings covered</div>
+      <p class="label">PAR · IRA · CAX · FOI · FIA · ATM</p>
       <h2>From first solo to the right seat.</h2>
-      <div class="grid">
-        <div class="card"><h3>Private Pilot</h3><p>PAR written, pre-solo quizzes and the private oral.</p></div>
-        <div class="card"><h3>Instrument</h3><p>IRA written, approach-plate reading and holding-pattern drills.</p></div>
-        <div class="card"><h3>Commercial</h3><p>CAX written, performance and complex-aircraft systems.</p></div>
-        <div class="card"><h3>CFI &amp; ATP</h3><p>FOI, FIA and ATM banks plus lesson-plan builders.</p></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th scope="col">Rating</th><th scope="col">FAA test</th><th scope="col">Questions</th><th scope="col">Included</th></tr></thead>
+          <tbody>
+            <tr><td>Private Pilot</td><td class="code">PAR</td><td class="num">60</td><td>Full written bank, pre-solo quizzes, private oral drills</td></tr>
+            <tr><td>Instrument Rating</td><td class="code">IRA</td><td class="num">60</td><td>Approach-plate reading, holding-pattern entries, IFR regs</td></tr>
+            <tr><td>Commercial Pilot</td><td class="code">CAX</td><td class="num">100</td><td>Performance, complex and high-performance systems</td></tr>
+            <tr><td>Flight Instructor</td><td class="code">FOI + FIA</td><td class="num">50 + 100</td><td>Fundamentals of instructing, lesson-plan builder</td></tr>
+            <tr><td>Airline Transport Pilot</td><td class="code">ATM</td><td class="num">125</td><td>Multi-engine ATP bank aligned with CTP coursework</td></tr>
+          </tbody>
+        </table>
       </div>
+      <p class="note">The minimum passing score on every FAA knowledge test is 70%.</p>
     </div>
   </section>
 
-  <section id="join" class="cta">
+  <section class="band join" id="join">
     <div class="wrap">
-      <div class="eyebrow">Ready when you are</div>
+      <p class="label">Free to start</p>
       <h2>Start your study plan today.</h2>
-      <p class="lead">Free to try. No card needed. Cancel any time before your checkride, or after you pass.</p>
+      <p class="lead">No card needed. Cancel any time before your checkride, or after you pass.</p>
       <form class="signup" onsubmit="event.preventDefault(); this.querySelector('button').textContent = 'You\'re on the list';">
         <input type="email" required placeholder="you@example.com" aria-label="Email address">
         <button class="btn" type="submit">Create free account</button>
