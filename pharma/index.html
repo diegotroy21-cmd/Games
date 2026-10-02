@@ -33,6 +33,8 @@
     --ruo: #8a5a12;
     --selected: rgba(31, 111, 181, .06);
     --logo-light: block;
+    --hero-shade: rgba(238, 242, 246, .72);
+    --halo: 0 0 18px rgba(238, 242, 246, .95), 0 0 2px rgba(238, 242, 246, .9);
     --logo-dark: none;
     --display: "Source Serif 4", "Iowan Old Style", Georgia, serif;
     --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -46,7 +48,7 @@
       --panel: rgba(18, 27, 54, .78); --line: rgba(238, 242, 246, .14); --on-accent: #0b1228; --nav-bg: #0b1228;
       --scrim: linear-gradient(90deg, rgba(11, 18, 40, .92) 0%, rgba(11, 18, 40, .74) 42%, rgba(11, 18, 40, .32) 72%, rgba(11, 18, 40, .18) 100%);
       --footer-bg: rgba(11, 18, 40, .88); --pv-bg: rgba(11, 18, 40, .94); --img-bg: #1a2442; --ruo: #e0b060; --selected: rgba(90, 162, 224, .12);
-      --logo-light: none; --logo-dark: block;
+      --logo-light: none; --logo-dark: block; --hero-shade: rgba(11, 18, 40, .82); --halo: 0 0 18px rgba(11, 18, 40, .95), 0 0 2px rgba(11, 18, 40, .9);
     }
   }
   :root[data-theme="dark"] {
@@ -54,7 +56,7 @@
     --panel: rgba(18, 27, 54, .78); --line: rgba(238, 242, 246, .14); --on-accent: #0b1228; --nav-bg: #0b1228;
     --scrim: linear-gradient(90deg, rgba(11, 18, 40, .92) 0%, rgba(11, 18, 40, .74) 42%, rgba(11, 18, 40, .32) 72%, rgba(11, 18, 40, .18) 100%);
     --footer-bg: rgba(11, 18, 40, .88); --pv-bg: rgba(11, 18, 40, .94); --img-bg: #1a2442; --ruo: #e0b060; --selected: rgba(90, 162, 224, .12);
-    --logo-light: none; --logo-dark: block;
+    --logo-light: none; --logo-dark: block; --hero-shade: rgba(11, 18, 40, .82); --halo: 0 0 18px rgba(11, 18, 40, .95), 0 0 2px rgba(11, 18, 40, .9);
   }
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
@@ -66,11 +68,12 @@
 
   /* ---------- Scroll-scrubbed video background ---------- */
   .bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; background: var(--bg) url("./assets/arp-poster.jpg") center / cover no-repeat; }
-  .bg video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .6s ease; }
+  .bg { --veil: 0; }
+  .bg video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .6s ease; transform: scale(1.04); filter: blur(calc(var(--veil) * 6px)); }
   .bg.ready video { opacity: 1; }
   .bg::after {
     content: ""; position: absolute; inset: 0; pointer-events: none;
-    background: var(--scrim);
+    background: var(--scrim); opacity: var(--veil);
   }
 
   /* ---------- Frame ---------- */
@@ -103,6 +106,15 @@
   h1 { font-size: var(--t-3xl); font-weight: 500; line-height: 1.02; letter-spacing: -.02em; max-width: 15ch; margin-bottom: 24px; }
   h2 { font-size: var(--t-2xl); font-weight: 500; line-height: 1.1; letter-spacing: -.01em; max-width: 22ch; margin-bottom: 16px; }
   h3 { font-size: var(--t-xl); font-weight: 600; line-height: 1.2; margin-bottom: 6px; }
+  .hero h1, .hero .lead, .hero .label { text-shadow: var(--halo); }
+  /* A feathered shade behind the hero copy only, so the video stays clear everywhere else on landing. */
+  .band.hero { position: relative; }
+  .band.hero::before {
+    content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+    background: linear-gradient(90deg, var(--hero-shade) 0%, var(--hero-shade) 38%, transparent 66%);
+    -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 22%, #000 82%, transparent 100%);
+            mask-image: linear-gradient(180deg, transparent 0%, #000 22%, #000 82%, transparent 100%);
+  }
   .lead { color: var(--muted); font-size: var(--t-lg); line-height: 1.55; max-width: 52ch; margin: 0; }
   p { margin: 0; }
 
@@ -157,12 +169,12 @@
   .hs-meter .bar i { display: block; height: 100%; background: var(--accent); transform-origin: left; transform: scaleX(0); }
   .track { display: flex; gap: 20px; width: max-content; will-change: transform; padding: 0 max(4vw, calc((100vw - 1120px) / 2)); }
   .product {
-    width: clamp(260px, 26vw, 330px); flex: none; color: inherit; text-decoration: none;
+    width: clamp(240px, 23vw, 300px); flex: none; color: inherit; text-decoration: none;
     background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
     display: grid; grid-template-rows: auto 1fr; transition: border-color .15s ease, box-shadow .15s ease;
   }
   .product:hover { border-color: var(--accent); box-shadow: 0 12px 32px rgba(15, 28, 43, .1); }
-  .product img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: var(--img-bg); }
+  .product img { width: 100%; height: auto; aspect-ratio: 5 / 4; object-fit: cover; object-position: 50% 62%; background: var(--img-bg); }
   .product .body { padding: 18px 20px 20px; display: grid; gap: 8px; align-content: start; border-top: 1px solid var(--line); }
   .product .kind { font: 500 var(--t-xs)/1.4 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
   .product h3 { margin: 0; }
@@ -188,7 +200,7 @@
   .pv-grid { display: grid; gap: 48px; grid-template-columns: minmax(0, 1fr); align-items: start; }
   @media (min-width: 900px) { .pv-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
   .pv-media { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
-  .pv-media img { width: 100%; aspect-ratio: 1; object-fit: cover; }
+  .pv-media img { width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: cover; }
   .pv-media figcaption { padding: 12px 16px; border-top: 1px solid var(--line); font: var(--t-xs)/1.5 var(--mono); color: var(--muted); }
   .pv-info { display: grid; gap: 20px; }
   .pv-info h1 { margin: 0; font-size: clamp(2.4rem, 5vw, 3.6rem); }
@@ -346,7 +358,7 @@
     <div class="hs-pin">
       <div class="wrap hs-head">
         <div>
-          <p class="label">4 prescription medicines · 1 research reagent</p>
+          <p class="label">5 research peptides · ≥ 99% purity by HPLC</p>
           <h2 id="products-title">The current range.</h2>
         </div>
         <div class="hs-meter" aria-hidden="true"><span class="bar"><i id="hsbar"></i></span><span id="hscount"></span></div>
@@ -374,7 +386,7 @@
 <!-- Product page: shown by the router for #/products/<id>[/<strength>] -->
 <section class="pv" id="productView" hidden aria-live="polite"></section>
 
-<footer>© <span id="year"></span> Atrium Research Peptides · Product names, strengths and prices on this site are placeholders.</footer>
+<footer>© <span id="year"></span> Atrium Research Peptides · Prices, and strengths other than those pictured, are placeholders.</footer>
 
 <button class="scrim" id="cartScrim" hidden aria-label="Close cart" tabindex="-1"></button>
 <aside class="cart" id="cart" role="dialog" aria-modal="true" aria-labelledby="cart-title" hidden>
@@ -382,7 +394,7 @@
   <ul id="cartItems"></ul>
   <footer>
     <div class="subtotal"><span>Subtotal</span><b id="cartSubtotal">$0.00</b></div>
-    <p class="fine">Prescription items are released only to verified pharmacies, hospitals and licensed prescribers. Prices exclude tax and cold-chain shipping.</p>
+    <p class="fine">All products are sold for laboratory research use only, not for human or veterinary use. Prices exclude tax and cold-chain shipping.</p>
     <button class="btn" type="button" id="checkout">Request order</button>
     <p class="status" id="checkoutStatus" hidden>Online checkout isn't connected yet. Your cart is saved on this device.</p>
   </footer>
@@ -413,53 +425,51 @@
 /* ---------- Product catalogue: one source for cards, product pages and the cart ---------- */
 var PRODUCTS = [
   {
-    id: 'axiveta', name: 'Axiveta', kind: 'Oncology', rx: true, img: './assets/products/axiveta.webp', pictured: 'Pictured: 150 mg vial and carton.',
-    summary: 'Targeted HER2 antibody–drug conjugate for adults with HER2-low metastatic breast cancer after prior systemic therapy.',
-    about: [['Form', 'Lyophilised powder for concentrate for solution for infusion'], ['Route', 'Intravenous infusion after reconstitution and dilution'], ['Storage', 'Below 25 °C. Do not freeze.'], ['Shelf life', '36 months unopened'], ['Final concentration', '20 mg/mL after reconstitution']],
+    id: 'tesamorelin', name: 'Tesamorelin', kind: 'GHRH analogue', rx: false, img: './assets/products/tesamorelin.webp', pictured: 'Pictured: 20 mg, 3 mL vial.',
+    summary: 'Synthetic 44-amino-acid analogue of growth-hormone-releasing hormone, supplied for endocrine and metabolic research.',
+    about: [['Form', 'Lyophilized powder'], ['Purity', '≥ 99% by HPLC'], ['Vial', '3 mL'], ['Storage', '2–8 °C (36–46 °F), protected from light'], ['Documentation', 'Certificate of analysis with every lot'], ['Use', 'For laboratory research use only. Not for human or veterinary use.']],
     options: [
-      { s: '100 mg', presentation: '100 mg in 10 mL vial', pack: '1 single-dose vial', prep: 'Reconstitute with 5 mL water for injections', code: 'AXV-100-01', price: 1840 },
-      { s: '150 mg', presentation: '150 mg in 20 mL vial', pack: '1 single-dose vial', prep: 'Reconstitute with 7.5 mL water for injections', code: 'AXV-150-01', price: 2760 },
-      { s: '420 mg', presentation: '420 mg in 50 mL vial', pack: '1 single-dose vial', prep: 'Reconstitute with 21 mL water for injections', code: 'AXV-420-01', price: 7720 }
+      { s: '5 mg', presentation: '5 mg lyophilized powder', pack: '3 mL glass vial', prep: 'Lyophilized. Reconstitute according to your laboratory protocol.', code: 'ARP-TES-05', price: 65 },
+      { s: '10 mg', presentation: '10 mg lyophilized powder', pack: '3 mL glass vial', prep: 'Lyophilized. Reconstitute according to your laboratory protocol.', code: 'ARP-TES-10', price: 110 },
+      { s: '20 mg', presentation: '20 mg lyophilized powder', pack: '3 mL glass vial', prep: 'Lyophilized. Reconstitute according to your laboratory protocol.', code: 'ARP-TES-20', price: 195 }
+    ], def: 2
+  },
+  {
+    id: 'cjc-ipamorelin', name: 'CJC-1295 + Ipamorelin', kind: 'GHRH / GHRP blend', rx: false, img: './assets/products/cjc-ipamorelin.webp', pictured: 'Pictured: 10 mg, 3 mL vial.',
+    summary: 'Pre-mixed blend of a GHRH analogue and a selective ghrelin-receptor agonist, supplied for growth-hormone axis research.',
+    about: [['Form', 'Lyophilized powder'], ['Purity', '≥ 99% by HPLC'], ['Vial', '3 mL'], ['Storage', '2–8 °C (36–46 °F), protected from light'], ['Documentation', 'Certificate of analysis with every lot'], ['Use', 'For laboratory research use only. Not for human or veterinary use.']],
+    options: [
+      { s: '5 mg', presentation: '5 mg lyophilized powder', pack: '3 mL glass vial', prep: 'Lyophilized. Reconstitute according to your laboratory protocol.', code: 'ARP-CJI-05', price: 55 },
+      { s: '10 mg', presentation: '10 mg lyophilized powder', pack: '3 mL glass vial', prep: 'Lyophilized. Reconstitute according to your laboratory protocol.', code: 'ARP-CJI-10', price: 95 }
     ], def: 1
   },
   {
-    id: 'relumab', name: 'Relumab', kind: 'Immunology', rx: true, img: './assets/products/relumab.webp', pictured: 'Pictured: 200 mg pens and carton.',
-    summary: 'Self-administered biologic for moderate-to-severe plaque psoriasis and active psoriatic arthritis.',
-    about: [['Form', 'Solution for injection in a prefilled autoinjector pen'], ['Route', 'Subcutaneous'], ['Concentration', '200 mg/mL'], ['Storage', '2–8 °C. May be kept up to 25 °C for a single period of 14 days.'], ['Shelf life', '24 months']],
+    id: 'glutathione', name: 'Glutathione', kind: 'Tripeptide antioxidant', rx: false, img: './assets/products/glutathione.webp', pictured: 'Pictured: 1500 mg, 10 mL vial.',
+    summary: 'Reduced glutathione (γ-Glu-Cys-Gly), the principal intracellular thiol antioxidant, supplied for oxidative-stress research.',
+    about: [['Form', 'Lyophilized powder'], ['Purity', '≥ 99% by HPLC'], ['Vial', '10 mL'], ['Storage', '2–8 °C (36–46 °F), protected from light'], ['Documentation', 'Certificate of analysis with every lot'], ['Use', 'For laboratory research use only. Not for human or veterinary use.']],
     options: [
-      { s: '100 mg', presentation: '100 mg/0.5 mL pen', pack: '1 prefilled pen', prep: 'Ready to use. Allow 30 minutes at room temperature.', code: 'RLM-100-01', price: 1490 },
-      { s: '200 mg', presentation: '200 mg/1 mL pen', pack: '2 prefilled pens', prep: 'Ready to use. Allow 30 minutes at room temperature.', code: 'RLM-200-02', price: 5960 },
-      { s: '300 mg', presentation: '300 mg/1.5 mL pen', pack: '2 prefilled pens', prep: 'Ready to use. Allow 30 minutes at room temperature.', code: 'RLM-300-02', price: 8940 }
+      { s: '600 mg', presentation: '600 mg lyophilized powder', pack: '10 mL glass vial', prep: 'Lyophilized. Reconstitute according to your laboratory protocol.', code: 'ARP-GSH-600', price: 45 },
+      { s: '1500 mg', presentation: '1500 mg lyophilized powder', pack: '10 mL glass vial', prep: 'Lyophilized. Reconstitute according to your laboratory protocol.', code: 'ARP-GSH-1500', price: 85 }
     ], def: 1
   },
   {
-    id: 'corthena', name: 'Corthena', kind: 'Rare disease', rx: true, img: './assets/products/corthena.webp', pictured: 'Pictured: 50 mg vial and carton.',
-    summary: 'Enzyme replacement therapy for patients with a confirmed diagnosis of late-onset Pompe disease.',
-    about: [['Form', 'Lyophilised powder for concentrate for solution for infusion'], ['Route', 'Intravenous infusion'], ['Storage', '2–8 °C. Protect from light.'], ['Shelf life', '36 months unopened'], ['Final concentration', '5 mg/mL after reconstitution']],
+    id: 'mots-c', name: 'MOTS-C', kind: 'Mitochondrial peptide', rx: false, img: './assets/products/mots-c.webp', pictured: 'Pictured: 40 mg, 3 mL vial.',
+    summary: '16-amino-acid peptide encoded in mitochondrial DNA, supplied for metabolic-regulation and cellular-energy research.',
+    about: [['Form', 'Lyophilized powder'], ['Purity', '≥ 99% by HPLC'], ['Vial', '3 mL'], ['Storage', '2–8 °C (36–46 °F), protected from light'], ['Documentation', 'Certificate of analysis with every lot'], ['Use', 'For laboratory research use only. Not for human or veterinary use.']],
     options: [
-      { s: '50 mg', presentation: '50 mg vial', pack: '1 vial', prep: 'Reconstitute with 10.3 mL water for injections', code: 'CRT-050-01', price: 910 },
-      { s: '100 mg', presentation: '100 mg vial', pack: '1 vial', prep: 'Reconstitute with 20.6 mL water for injections', code: 'CRT-100-01', price: 1820 },
-      { s: '200 mg', presentation: '200 mg vial', pack: '1 vial', prep: 'Reconstitute with 41.2 mL water for injections', code: 'CRT-200-01', price: 3640 }
-    ], def: 0
-  },
-  {
-    id: 'nexoprin', name: 'Nexoprin', kind: 'Supportive care', rx: true, img: './assets/products/nexoprin.webp', pictured: 'Pictured: 6 mg prefilled syringe in blister, with carton.',
-    summary: 'Long-acting growth factor that reduces the incidence of febrile neutropenia during myelosuppressive chemotherapy.',
-    about: [['Form', 'Solution for injection in a prefilled syringe with needle guard'], ['Route', 'Subcutaneous'], ['Concentration', '10 mg/mL'], ['Storage', '2–8 °C. Do not freeze. Keep in the outer carton.'], ['Shelf life', '36 months']],
-    options: [
-      { s: '3 mg', presentation: '3 mg/0.3 mL syringe', pack: '1 prefilled syringe', prep: 'Ready to use. For weight-based paediatric dosing.', code: 'NXP-003-01', price: 1650 },
-      { s: '6 mg', presentation: '6 mg/0.6 mL syringe', pack: '1 prefilled syringe', prep: 'Ready to use. One dose per chemotherapy cycle.', code: 'NXP-006-01', price: 3290 }
+      { s: '10 mg', presentation: '10 mg lyophilized powder', pack: '3 mL glass vial', prep: 'Lyophilized. Reconstitute according to your laboratory protocol.', code: 'ARP-MOT-10', price: 60 },
+      { s: '40 mg', presentation: '40 mg lyophilized powder', pack: '3 mL glass vial', prep: 'Lyophilized. Reconstitute according to your laboratory protocol.', code: 'ARP-MOT-40', price: 180 }
     ], def: 1
   },
   {
-    id: 'axion-beta', name: 'Axion-Beta RUO', kind: 'Research use only', rx: false, img: './assets/products/axion-beta.webp', pictured: 'Pictured: 100 mg (10 mL) screw-cap vial.',
-    summary: 'Research-grade reference standard for assay development, potency testing and analytical method validation.',
-    about: [['Formulation', 'Sterile-filtered solution in PBS, pH 7.4'], ['Concentration', '10 mg/mL'], ['Purity', '≥ 98% by SEC-HPLC'], ['Endotoxin', '< 0.1 EU/mg'], ['Storage', '−20 °C. Aliquot on receipt and avoid repeated freeze–thaw.'], ['Documentation', 'Certificate of analysis with every lot']],
+    id: 'glp-3r', name: 'GLP-3R', kind: 'Incretin receptor agonist', rx: false, img: './assets/products/glp-3r.webp', pictured: 'Pictured: 30 mg, 3 mL vial.',
+    summary: 'Triple-agonist peptide active at GLP-1, GIP and glucagon receptors, supplied for metabolic and receptor-pharmacology research.',
+    about: [['Form', 'Lyophilized powder'], ['Purity', '≥ 99% by HPLC'], ['Vial', '3 mL'], ['Storage', '2–8 °C (36–46 °F), protected from light'], ['Documentation', 'Certificate of analysis with every lot'], ['Use', 'For laboratory research use only. Not for human or veterinary use.']],
     options: [
-      { s: '1 mg', presentation: '0.1 mL at 10 mg/mL', pack: '0.5 mL screw-cap tube', prep: 'Thaw on ice before use', code: 'AXB-RUO-001', price: 180 },
-      { s: '10 mg', presentation: '1 mL at 10 mg/mL', pack: '2 mL screw-cap vial', prep: 'Thaw on ice before use', code: 'AXB-RUO-010', price: 1150 },
-      { s: '100 mg', presentation: '10 mL at 10 mg/mL', pack: '10 mL screw-cap vial', prep: 'Thaw on ice before use', code: 'AXB-RUO-100', price: 8900 }
-    ], def: 1
+      { s: '10 mg', presentation: '10 mg lyophilized powder', pack: '3 mL glass vial', prep: 'Lyophilized. Reconstitute according to your laboratory protocol.', code: 'ARP-GLP-10', price: 120 },
+      { s: '20 mg', presentation: '20 mg lyophilized powder', pack: '3 mL glass vial', prep: 'Lyophilized. Reconstitute according to your laboratory protocol.', code: 'ARP-GLP-20', price: 210 },
+      { s: '30 mg', presentation: '30 mg lyophilized powder', pack: '3 mL glass vial', prep: 'Lyophilized. Reconstitute according to your laboratory protocol.', code: 'ARP-GLP-30', price: 290 }
+    ], def: 2
   }
 ];
 </script>
@@ -491,6 +501,15 @@ var PRODUCTS = [
     }
     raf = (current !== target) ? requestAnimationFrame(tick) : null;
   }
+
+  // The background starts fully clear and gains its wash and blur over the first screen of scrolling.
+  function veil() {
+    var v = document.body.classList.contains('on-product') ? 1 : Math.min(1, window.scrollY / (window.innerHeight * 0.9));
+    bg.style.setProperty('--veil', v.toFixed(3));
+  }
+  window.addEventListener('scroll', veil, { passive: true });
+  window.addEventListener('hashchange', function () { setTimeout(veil, 0); });
+  veil();
 
   function onScroll() {
     if (!video.duration) return;
