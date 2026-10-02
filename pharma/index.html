@@ -69,7 +69,7 @@
   /* ---------- Scroll-scrubbed video background ---------- */
   .bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; background: var(--bg) url("./assets/arp-poster.jpg") center / cover no-repeat; }
   .bg { --veil: 0; }
-  .bg video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .6s ease; transform: scale(calc(1 + var(--veil) * .04)); filter: blur(calc(var(--veil) * 6px)); }
+  .bg video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .6s ease; transform: scale(calc(1 + var(--veil) * .04)); filter: blur(calc(var(--veil) * 2.5px)); }
   .bg.ready video { opacity: 1; }
   .bg::after {
     content: ""; position: absolute; inset: 0; pointer-events: none;
@@ -80,9 +80,12 @@
   .page { position: relative; z-index: 1; }
   .wrap { width: min(1120px, 92vw); margin: 0 auto; }
   .band { padding: 16vh 0 4vh; }
-  .band.hero { padding: 24vh 0 16vh; }
+  .band.hero { padding: 14vh 0 10vh; }
+  /* The first screen and a half is the video alone: nothing sits over it while the clip plays. */
+  .intro { height: 160vh; height: 160svh; }
 
   header.nav {
+    transition: transform .4s ease, opacity .4s ease;
     position: fixed; top: 0; left: 0; right: 0; z-index: 5;
     display: flex; align-items: center; justify-content: space-between; gap: 24px;
     padding: 6px max(4vw, 20px);
@@ -106,15 +109,6 @@
   h1 { font-size: var(--t-3xl); font-weight: 500; line-height: 1.02; letter-spacing: -.02em; max-width: 15ch; margin-bottom: 24px; }
   h2 { font-size: var(--t-2xl); font-weight: 500; line-height: 1.1; letter-spacing: -.01em; max-width: 22ch; margin-bottom: 16px; }
   h3 { font-size: var(--t-xl); font-weight: 600; line-height: 1.2; margin-bottom: 6px; }
-  .hero h1, .hero .lead, .hero .label { text-shadow: var(--halo); }
-  /* A feathered shade behind the hero copy only, so the video stays clear everywhere else on landing. */
-  .band.hero { position: relative; }
-  .band.hero::before {
-    content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
-    background: linear-gradient(90deg, var(--hero-shade) 0%, var(--hero-shade) 38%, transparent 66%);
-    -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 22%, #000 82%, transparent 100%);
-            mask-image: linear-gradient(180deg, transparent 0%, #000 22%, #000 82%, transparent 100%);
-  }
   .lead { color: var(--muted); font-size: var(--t-lg); line-height: 1.55; max-width: 52ch; margin: 0; }
   p { margin: 0; }
 
@@ -161,30 +155,33 @@
 
   /* ---------- Featured products: pinned row that scrolls sideways ---------- */
   .hs { position: relative; }
-  .hs-pin { position: sticky; top: 0; height: 100vh; height: 100svh; overflow: hidden; display: flex; flex-direction: column; justify-content: center; gap: 28px; padding-top: 64px; }
-  .hs-stage { display: flex; flex-direction: column; gap: 28px; will-change: transform; transform-origin: 50% 0; }
+  /* Product act, after the Substrate portfolio: a full-screen panel of tall cards that enters
+     from the right, pans through every card, then drops away downward while shrinking. */
+  .hs-pin { position: sticky; top: 0; height: 100vh; height: 100svh; overflow: hidden; }
+  .hs-stage { height: 100%; padding: calc(9vmin + 40px) 0 8vmin; will-change: transform; transform-origin: 50% 0; }
   .hs.static .hs-stage { transform: none !important; }
-  .hs-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
-  .hs-head h2 { margin-bottom: 0; }
-  .hs-meter { display: flex; align-items: center; gap: 12px; font: var(--t-xs) var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
-  .hs-meter .bar { width: 140px; height: 3px; border-radius: 2px; background: var(--line); overflow: hidden; }
-  .hs-meter .bar i { display: block; height: 100%; background: var(--accent); transform-origin: left; transform: scaleX(0); }
-  .track { display: flex; gap: 20px; width: max-content; will-change: transform; padding: 0 max(4vw, calc((100vw - 1120px) / 2)); }
+  .hs-rail { height: 100%; }
+  .track { display: flex; height: 100%; gap: 3vmin; padding: 0 3vmin; width: max-content; will-change: transform; }
   .product {
-    width: clamp(240px, 23vw, 300px); flex: none; color: inherit; text-decoration: none;
-    background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
-    display: grid; grid-template-rows: auto 1fr; transition: border-color .15s ease, box-shadow .15s ease;
+    position: relative; flex: none; width: 62vw; height: 100%; overflow: hidden; border-radius: 2.5vmin;
+    background: var(--surface); border: 1px solid var(--line); color: inherit; text-decoration: none;
+    display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); transition: border-color .2s ease;
   }
-  .product:hover { border-color: var(--accent); box-shadow: 0 12px 32px rgba(15, 28, 43, .1); }
-  .product img { width: 100%; height: auto; aspect-ratio: 5 / 4; object-fit: cover; object-position: 50% 62%; background: var(--img-bg); }
-  .product .body { padding: 18px 20px 20px; display: grid; gap: 8px; align-content: start; border-top: 1px solid var(--line); }
-  .product .kind { font: 500 var(--t-xs)/1.4 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
-  .product h3 { margin: 0; }
-  .product p { color: var(--muted); font-size: var(--t-sm); }
-  .product .more { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--line); font-size: var(--t-sm); }
-  .product .more span { font-family: var(--mono); color: var(--muted); font-size: var(--t-xs); }
-  .product .more b { color: var(--accent); font-weight: 600; }
-  .hs.static .hs-pin { position: static; height: auto; padding: 16vh 0 4vh; overflow: visible; }
+  .product:hover { border-color: var(--accent); }
+  .product .copy { display: flex; flex-direction: column; justify-content: space-between; padding: 3.5vmin; min-width: 0; }
+  .product .tags { display: flex; flex-wrap: wrap; align-items: center; gap: 1.4vmin; font: 500 max(11px, 1.6vmin)/1.3 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .product .tags i { font-style: normal; opacity: .5; }
+  .product h3 { margin: 0; font-size: clamp(2.4rem, 5.6vw, 6rem); font-weight: 500; line-height: .95; letter-spacing: -.03em; text-wrap: balance; }
+  .product p { color: var(--muted); font-size: max(13px, 1.9vmin); max-width: 40ch; margin-top: 1.6vmin; }
+  .product .go { margin-top: 2.4vmin; color: var(--accent); font-weight: 600; font-size: max(13px, 1.8vmin); }
+  .product img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 55%; background: var(--img-bg); }
+  @media (max-width: 760px) {
+    .product { width: 84vw; grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+    .product img { grid-row: 1; }
+    .product .copy { grid-row: 2; padding: 4vmin; }
+    .product h3 { font-size: 2.2rem; }
+  }
+  .hs.static .hs-pin { position: static; height: 90vh; overflow: visible; }
   .hs.static .hs-rail { overflow-x: auto; padding-bottom: 12px; }
 
   /* ---------- Contact ---------- */
@@ -268,6 +265,8 @@
   .toast button { border: 1px solid rgba(255, 255, 255, .3); background: none; color: #fff; border-radius: 4px; padding: 6px 10px; cursor: pointer; font-size: var(--t-xs); font-weight: 600; white-space: nowrap; }
 
   body.on-product .page { display: none; }
+  /* The bar stays out of the way until the visitor starts scrolling. */
+  body.at-top:not(.on-product) header.nav { transform: translateY(-100%); opacity: 0; pointer-events: none; }
   .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   h1[tabindex="-1"]:focus { outline: none; }
   @media (max-width: 560px) { nav a.btn { display: none; } .brand img { height: 48px; } }
@@ -299,7 +298,8 @@
 
 <main class="page" id="landing">
 
-  <section class="band hero" id="top">
+  <div class="intro" id="top" aria-hidden="true"></div>
+  <section class="band hero" id="intro-copy">
     <div class="wrap">
       <p class="label">Precision biologics · Discovery to Phase III</p>
       <h1>Medicines engineered for the patients who need them most.</h1>
@@ -359,14 +359,8 @@
   <div class="hs" id="products" aria-labelledby="products-title">
     <div class="hs-pin">
       <div class="hs-stage" id="hsstage">
-      <div class="wrap hs-head">
-        <div>
-          <p class="label">5 research peptides · ≥ 99% purity by HPLC</p>
-          <h2 id="products-title">The current range.</h2>
-        </div>
-        <div class="hs-meter" aria-hidden="true"><span class="bar"><i id="hsbar"></i></span><span id="hscount"></span></div>
-      </div>
-      <div class="hs-rail">
+        <h2 id="products-title" class="sr-only">Featured products</h2>
+        <div class="hs-rail">
         <div class="track" id="hstrack"></div>
       </div>
       </div>
@@ -488,7 +482,7 @@ var PRODUCTS = [
   var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   var PLAY_SCREENS = 1.5;            // scroll distance, in screens, for the full clip
-  var VEIL_FROM = 1.3, VEIL_SPAN = 0.6; // wash and blur fade in once the clip is nearly done
+  var VEIL_FROM = 1.0, VEIL_SPAN = 0.6; // wash and blur fade in once the clip is nearly done
 
   function progress() {
     // The whole clip plays over the first screen and a half, while the background is still clear.
@@ -511,6 +505,7 @@ var PRODUCTS = [
 
   // The background starts fully clear and gains its wash and blur over the first screen of scrolling.
   function veil() {
+    document.body.classList.toggle('at-top', window.scrollY < 40);
     var v = document.body.classList.contains('on-product') ? 1 : Math.min(1, Math.max(0, (window.scrollY - window.innerHeight * VEIL_FROM) / (window.innerHeight * VEIL_SPAN)));
     bg.style.setProperty('--veil', v.toFixed(3));
   }
@@ -567,11 +562,11 @@ var PRODUCTS = [
   /* Cards in the pinned row */
   var track = document.getElementById('hstrack');
   track.innerHTML = PRODUCTS.map(function (p) {
-    var from = p.options[0].s, n = p.options.length;
+    var pic = p.options[p.def].s, n = p.options.length;
     return '<a class="product" href="#/products/' + p.id + '">' +
-      '<img src="' + p.img + '" alt="' + esc(p.name) + ' product render" width="800" height="800">' +
-      '<div class="body"><div class="kind">' + esc(p.kind) + '</div><h3>' + esc(p.name) + '</h3><p>' + esc(p.summary) + '</p>' +
-      '<div class="more"><span>' + n + ' strengths · from ' + esc(from) + '</span><b>View product</b></div></div></a>';
+      '<div class="copy"><div class="tags"><span>' + esc(p.kind) + '</span><i>·</i><span>' + esc(pic) + '</span><i>·</i><span>' + n + ' strengths</span></div>' +
+      '<div><h3>' + esc(p.name) + '</h3><p>' + esc(p.summary) + '</p><div class="go">View product →</div></div></div>' +
+      '<img src="' + p.img + '" alt="' + esc(p.name) + ' vial" width="720" height="900"></a>';
   }).join('');
 
   /* ---------- Cart state (per device) ---------- */
@@ -754,12 +749,10 @@ var PRODUCTS = [
 (function () {
   var hs = document.getElementById('products');
   var track = document.getElementById('hstrack');
-  var bar = document.getElementById('hsbar');
-  var count = document.getElementById('hscount');
   var cards = track.children;
   var dist = 0;
 
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { hs.classList.add('static'); count.textContent = cards.length + ' products'; return; }
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { hs.classList.add('static'); hs.querySelector('.hs-rail').style.overflowX = 'auto'; return; }
 
   var stage = document.getElementById('hsstage');
   var ENTER_END = 0.267, SLIDE_SPAN = 0.453, EXIT_START = 0.72;
@@ -768,6 +761,7 @@ var PRODUCTS = [
 
   function layout() {
     if (document.body.classList.contains('on-product')) return;
+    // Measured live: the pan must land the last card flush with the right edge at any window size.
     dist = Math.max(0, track.scrollWidth - window.innerWidth);
     // Section is as tall as the sideways travel plus one screen, so the pin lasts exactly that long.
     // Travel is split like a showreel act: enter from the right, slide the row, drop away downward.
@@ -788,8 +782,6 @@ var PRODUCTS = [
     // In from the RIGHT, out DOWNWARD while shrinking.
     stage.style.transform = 'translate(' + ((1 - enter) * 105).toFixed(2) + 'vw,' + (exit * 118).toFixed(2) + 'vh) scale(' + (1 - exit * 0.34).toFixed(4) + ')';
     track.style.transform = 'translate3d(' + (-slide * dist).toFixed(1) + 'px,0,0)';
-    bar.style.transform = 'scaleX(' + slide.toFixed(3) + ')';
-    count.textContent = (Math.min(cards.length - 1, Math.round(slide * (cards.length - 1))) + 1) + ' / ' + cards.length;
   }
 
   // Keyboard users tabbing into a card: scroll the page so that card is slid into view.
